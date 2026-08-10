@@ -1,0 +1,62 @@
+package com.mycompany.sunrise_dental_clinic;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+@WebServlet("/LoginServlet")
+public class LoginServlet extends HttpServlet {
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+
+        String user = request.getParameter("username");
+        String pass = request.getParameter("password");
+
+        try {
+            Connection conn = DatabaseManager.getInstance().getConnection();
+            String query = "SELECT full_name, role FROM users WHERE username = ? AND password = ?";
+            
+            PreparedStatement stmt = conn.prepareStatement(query);
+            stmt.setString(1, user);
+            stmt.setString(2, pass);
+            
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                String fullName = rs.getString("full_name");
+                String role = rs.getString("role");
+
+                // Create User Session
+                HttpSession session = request.getSession();
+                session.setAttribute("user", user);
+                session.setAttribute("fullName", fullName);
+                session.setAttribute("role", role);
+
+                // Redirect based on User Role
+                if ("DOCTOR".equalsIgnoreCase(role)) {
+                    response.sendRedirect("doctor_dashboard.jsp");
+                } else {
+                    response.sendRedirect("dashboard.jsp"); // Staff / Receptionist Dashboard
+                }
+            } else {
+                request.setAttribute("errorMessage", "Invalid Username or Password!");
+                request.getRequestDispatcher("login.jsp").forward(request, response);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            request.setAttribute("errorMessage", "Database Connection Error!");
+            request.getRequestDispatcher("login.jsp").forward(request, response);
+        }
+    }
+}
