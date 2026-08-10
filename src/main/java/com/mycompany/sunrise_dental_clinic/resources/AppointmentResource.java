@@ -1,5 +1,6 @@
-package com.mycompany.sunrise_dental_clinic;
+package com.mycompany.sunrise_dental_clinic.resources;
 
+import com.mycompany.sunrise_dental_clinic.DatabaseManager; // DatabaseManager එක main package එකේ තියෙන නිසා මෙහෙම import කරගන්න
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;

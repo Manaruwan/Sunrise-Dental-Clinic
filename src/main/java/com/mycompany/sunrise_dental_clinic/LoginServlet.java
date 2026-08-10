@@ -46,7 +46,7 @@ public class LoginServlet extends HttpServlet {
                 if ("DOCTOR".equalsIgnoreCase(role)) {
                     response.sendRedirect("doctor_dashboard.jsp");
                 } else {
-                    response.sendRedirect("dashboard.jsp"); // Staff / Receptionist Dashboard
+                    response.sendRedirect("staff_dashboard.jsp"); // Staff / Receptionist Dashboard
                 }
             } else {
                 request.setAttribute("errorMessage", "Invalid Username or Password!");
