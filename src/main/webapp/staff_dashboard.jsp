@@ -332,6 +332,8 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            box-shadow: var(--shadow-sm);
+            animation: fadeIn 0.3s ease-out;
         }
 
         .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
@@ -340,7 +342,7 @@
 </head>
 <body>
 
-    <!-- Header Navbar (Matching Doctor Portal Theme) -->
+    <!-- Header Navbar -->
     <div class="navbar">
         <div class="brand">
             <i class="fa-solid fa-tooth"></i> Sunrise Dental Staff Portal
@@ -361,11 +363,20 @@
         <!-- Status Notification Messages -->
         <%
             String status = request.getParameter("status");
+            String apptNum = request.getParameter("apptNum");
+            
             if ("doc_success".equals(status)) {
         %>
-            <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Doctor Registered Successfully!</div>
+            <div class="alert alert-success"><i class="fa-solid fa-circle-check"></i> Doctor & Login Account Registered Successfully!</div>
         <% } else if ("doc_error".equals(status)) { %>
-            <div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i> Failed to Add Doctor!</div>
+            <div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i> Failed to Register Doctor! (Doctor ID or Username might exist)</div>
+        <% } else if ("appt_success".equals(status)) { %>
+            <div class="alert alert-success">
+                <i class="fa-solid fa-circle-check"></i> 
+                <span>Appointment Registered Successfully! Assigned Number: <strong><%= (apptNum != null ? apptNum : "") %></strong></span>
+            </div>
+        <% } else if ("appt_error".equals(status)) { %>
+            <div class="alert alert-error"><i class="fa-solid fa-circle-xmark"></i> Failed to Register Appointment! Please try again.</div>
         <% } %>
 
         <!-- Dashboard Stat Widgets -->
@@ -410,17 +421,17 @@
 
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
-            <button class="tab-btn active" onclick="switchTab('add-doctor')"><i class="fa-solid fa-user-plus"></i> Register Doctor</button>
-            <button class="tab-btn" onclick="switchTab('add-appointment')"><i class="fa-solid fa-calendar-plus"></i> New Appointment</button>
-            <button class="tab-btn" onclick="switchTab('appointments')"><i class="fa-solid fa-calendar-check"></i> Schedule & Details</button>
-            <button class="tab-btn" onclick="switchTab('billing-history')"><i class="fa-solid fa-file-invoice-dollar"></i> Saved Receipts</button>
-            <button class="tab-btn" onclick="switchTab('help')"><i class="fa-solid fa-circle-question"></i> Staff Guide</button>
+            <button id="tab-btn-add-doctor" class="tab-btn active" onclick="switchTab('add-doctor')"><i class="fa-solid fa-user-plus"></i> Register Doctor</button>
+            <button id="tab-btn-add-appointment" class="tab-btn" onclick="switchTab('add-appointment')"><i class="fa-solid fa-calendar-plus"></i> New Appointment</button>
+            <button id="tab-btn-appointments" class="tab-btn" onclick="switchTab('appointments')"><i class="fa-solid fa-calendar-check"></i> Schedule & Details</button>
+            <button id="tab-btn-billing-history" class="tab-btn" onclick="switchTab('billing-history')"><i class="fa-solid fa-file-invoice-dollar"></i> Saved Receipts</button>
+            <button id="tab-btn-help" class="tab-btn" onclick="switchTab('help')"><i class="fa-solid fa-circle-question"></i> Staff Guide</button>
         </div>
 
-        <!-- TAB 1: ADD NEW DOCTOR -->
+        <!-- TAB 1: ADD NEW DOCTOR (With Login Credentials) -->
         <div id="add-doctor" class="tab-content active">
             <h3 style="margin-bottom: 22px; color: var(--secondary); font-size: 18px; font-weight: 800;">
-                <i class="fa-solid fa-user-doctor" style="color:var(--primary); margin-right:6px;"></i> Register New Dental Specialist
+                <i class="fa-solid fa-user-doctor" style="color:var(--primary); margin-right:6px;"></i> Register New Dental Specialist & Create Login
             </h3>
 
             <form action="AddDoctorServlet" method="POST">
@@ -441,8 +452,17 @@
                         <label>Contact Telephone No.</label>
                         <input type="text" name="telNo" placeholder="10 Digits Contact" pattern="\d{10}" required>
                     </div>
+                    <!-- Doctor Login Credentials -->
+                    <div class="form-group">
+                        <label>Doctor Username (For Doctor Portal Login)</label>
+                        <input type="text" name="username" placeholder="e.g. doc.kasun" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Temporary Login Password</label>
+                        <input type="password" name="password" placeholder="Create Password" required>
+                    </div>
                 </div>
-                <button type="submit" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Save Doctor Record</button>
+                <button type="submit" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Register Doctor & Account</button>
             </form>
 
             <div class="card-header" style="margin-top: 35px;">
@@ -495,21 +515,6 @@
             <h3 style="margin-bottom: 22px; color: var(--secondary); font-size: 18px; font-weight: 800;">
                 <i class="fa-solid fa-calendar-plus" style="color:var(--primary); margin-right:6px;"></i> Register Patient Appointment
             </h3>
-
-            <% 
-                String apptStatus = request.getParameter("status");
-                String apptNum = request.getParameter("apptNum");
-                if ("appt_success".equals(apptStatus)) { 
-            %>
-                <div class="alert alert-success">
-                    <i class="fa-solid fa-circle-check"></i> Appointment Successfully Registered! 
-                    <strong>Assigned Appointment Number: <%= apptNum %></strong>
-                </div>
-            <% } else if ("appt_error".equals(apptStatus)) { %>
-                <div class="alert alert-error">
-                    <i class="fa-solid fa-circle-xmark"></i> Failed to Register Appointment! Please try again.
-                </div>
-            <% } %>
 
             <form action="AddAppointmentServlet" method="POST">
                 <div class="form-grid">
@@ -684,7 +689,7 @@
             
             <div class="help-box">
                 <h4><i class="fa-solid fa-1"></i> How to Add a New Doctor</h4>
-                <p>Go to the <strong>Register Doctor</strong> tab, enter Doctor ID, Full Name, Operating Branch Location, and 10-digit Tel No, then click 'Save Doctor Record'.</p>
+                <p>Go to the <strong>Register Doctor</strong> tab, enter Doctor ID, Full Name, Branch Location, 10-digit Tel No, Username and Password, then click 'Register Doctor & Account'.</p>
             </div>
             <div class="help-box">
                 <h4><i class="fa-solid fa-2"></i> Registering a Patient Appointment</h4>
@@ -708,13 +713,28 @@
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
             
-            document.getElementById(tabId).classList.add('active');
-            event.currentTarget.classList.add('active');
+            const targetContent = document.getElementById(tabId);
+            const targetBtn = document.getElementById('tab-btn-' + tabId);
+
+            if (targetContent) targetContent.classList.add('active');
+            if (targetBtn) targetBtn.classList.add('active');
         }
 
-        // Fetch Doctors strictly using Dynamic Context Path DoctorResource API
-        window.addEventListener('DOMContentLoaded', loadDoctorsViaAPI);
+        // Auto Open the Relevant Tab on Form Submit Success
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            
+            if (status === 'appt_success' || status === 'appt_error') {
+                switchTab('add-appointment');
+            } else if (status === 'doc_success' || status === 'doc_error') {
+                switchTab('add-doctor');
+            }
 
+            loadDoctorsViaAPI();
+        });
+
+        // Fetch Doctors strictly using Dynamic Context Path DoctorResource API
         function loadDoctorsViaAPI() {
             const dropdown = document.getElementById('dentistDropdown');
             const apiUrl = '<%= request.getContextPath() %>/api/doctors';
