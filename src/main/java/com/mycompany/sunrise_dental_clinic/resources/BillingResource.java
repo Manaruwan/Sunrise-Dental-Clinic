@@ -1,6 +1,6 @@
 package com.mycompany.sunrise_dental_clinic.resources;
 
-import com.mycompany.sunrise_dental_clinic.DatabaseManager;
+import Libs.DBUtil;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -13,8 +13,9 @@ public class BillingResource {
     @Path("/{apptNum}")
     @Produces(MediaType.APPLICATION_JSON)
     public Response calculateBill(@PathParam("apptNum") String apptNum) {
+        Connection conn = null;
         try {
-            Connection conn = DatabaseManager.getInstance().getConnection();
+            conn = DBUtil.getConnection();
             String sql = "SELECT p.name, a.treatment_type FROM appointments a JOIN patients p ON a.patient_id = p.patient_id WHERE a.appointment_num = ?";
             
             PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -26,7 +27,7 @@ public class BillingResource {
                 String treatment = rs.getString("treatment_type");
                 
                 double consultationFee = 2000.00;
-                double treatmentFee = 3000.00; // Default
+                double treatmentFee = 3000.00;
                 
                 if ("Cleaning".equalsIgnoreCase(treatment)) treatmentFee = 5000.00;
                 else if ("Filling".equalsIgnoreCase(treatment)) treatmentFee = 4000.00;
@@ -46,6 +47,8 @@ public class BillingResource {
             }
         } catch (Exception e) {
             return Response.status(500).entity("{\"error\":\"" + e.getMessage() + "\"}").build();
+        } finally {
+            DBUtil.closeConnection(conn);
         }
     }
 }

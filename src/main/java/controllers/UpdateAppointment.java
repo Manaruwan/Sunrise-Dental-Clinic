@@ -1,5 +1,6 @@
-package com.mycompany.sunrise_dental_clinic;
+package controllers;
 
+import Libs.DBUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -11,7 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 @WebServlet("/UpdateAppointmentServlet")
-public class UpdateAppointmentServlet extends HttpServlet {
+public class UpdateAppointment extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -20,8 +21,9 @@ public class UpdateAppointmentServlet extends HttpServlet {
         String apptNum = request.getParameter("appointmentNum");
         String newStatus = request.getParameter("status");
 
+        Connection conn = null;
         try {
-            Connection conn = DatabaseManager.getInstance().getConnection();
+            conn = DBUtil.getConnection();
             String sql = "UPDATE appointments SET status = ? WHERE appointment_num = ?";
             
             PreparedStatement stmt = conn.prepareStatement(sql);
@@ -34,6 +36,8 @@ public class UpdateAppointmentServlet extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
             response.sendRedirect("doctor_dashboard.jsp?msg=error");
+        } finally {
+            DBUtil.closeConnection(conn);
         }
     }
 }

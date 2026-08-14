@@ -1,5 +1,6 @@
-package com.mycompany.sunrise_dental_clinic;
+package controllers;
 
+import Libs.DBUtil;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -11,7 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 @WebServlet("/SaveBillServlet")
-public class SaveBillServlet extends HttpServlet {
+public class SaveBill extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
@@ -24,8 +25,9 @@ public class SaveBillServlet extends HttpServlet {
         double treatmentFee = Double.parseDouble(request.getParameter("treatmentFee"));
         double totalAmount = Double.parseDouble(request.getParameter("totalAmount"));
 
+        Connection conn = null;
         try {
-            Connection conn = DatabaseManager.getInstance().getConnection();
+            conn = DBUtil.getConnection();
             String sql = "INSERT INTO bills (appointment_num, patient_name, treatment_type, consultation_fee, treatment_fee, total_amount) " +
                          "VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE total_amount = VALUES(total_amount)";
             
@@ -44,6 +46,8 @@ public class SaveBillServlet extends HttpServlet {
         } catch (Exception e) {
             e.printStackTrace();
             response.sendRedirect("doctor_dashboard.jsp?msg=bill_error");
+        } finally {
+            DBUtil.closeConnection(conn);
         }
     }
 }

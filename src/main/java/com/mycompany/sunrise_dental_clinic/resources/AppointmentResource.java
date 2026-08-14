@@ -1,6 +1,6 @@
 package com.mycompany.sunrise_dental_clinic.resources;
 
-import com.mycompany.sunrise_dental_clinic.DatabaseManager; // DatabaseManager එක main package එකේ තියෙන නිසා මෙහෙම import කරගන්න
+import Libs.DBUtil;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -23,10 +23,10 @@ public class AppointmentResource {
         String apptNum = "APT-" + (System.currentTimeMillis() % 10000);
         String patId = "PAT-" + (int)(Math.random() * 9000 + 1000);
 
+        Connection conn = null;
         try {
-            Connection conn = DatabaseManager.getInstance().getConnection();
+            conn = DBUtil.getConnection();
             
-            // 1. Insert Patient
             PreparedStatement pStmt = conn.prepareStatement("INSERT INTO patients VALUES (?, ?, ?, ?)");
             pStmt.setString(1, patId);
             pStmt.setString(2, name);
@@ -34,7 +34,6 @@ public class AppointmentResource {
             pStmt.setString(4, contact);
             pStmt.executeUpdate();
 
-            // 2. Insert Appointment
             PreparedStatement aStmt = conn.prepareStatement("INSERT INTO appointments VALUES (?, ?, ?, ?, ?)");
             aStmt.setString(1, apptNum);
             aStmt.setString(2, patId);
@@ -47,6 +46,8 @@ public class AppointmentResource {
 
         } catch (Exception e) {
             return Response.status(500).entity("{\"status\":\"error\", \"message\":\"" + e.getMessage() + "\"}").build();
+        } finally {
+            DBUtil.closeConnection(conn);
         }
     }
 }
