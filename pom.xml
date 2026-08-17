@@ -26,6 +26,11 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>8.3.0</version>
         </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>Design_Patterns_Core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
     
     <build>
