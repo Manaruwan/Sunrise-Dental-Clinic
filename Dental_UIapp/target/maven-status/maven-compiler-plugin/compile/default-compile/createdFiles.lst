@@ -1,0 +1,9 @@
+controllers\AddTreatment.class
+com\mycompany\dental_uiapp\resources\JakartaEE11Resource.class
+controllers\AddAppointment.class
+controllers\Logout.class
+controllers\Login.class
+controllers\UpdateAppointment.class
+com\mycompany\dental_uiapp\JakartaRestConfiguration.class
+controllers\AddDoctor.class
+controllers\SaveBill.class

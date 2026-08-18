@@ -1,0 +1,6 @@
+Libs\MySQLUtils.class
+Libs\Patient.class
+com\mycompany\design_patterns_core\Design_Patterns_Core.class
+Libs\Appointment.class
+Libs\DBUtil.class
+Libs\Doctor.class
