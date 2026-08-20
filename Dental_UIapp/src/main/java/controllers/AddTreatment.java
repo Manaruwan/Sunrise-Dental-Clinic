@@ -33,14 +33,14 @@ public class AddTreatment extends HttpServlet {
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
-                response.sendRedirect("staff_dashboard.jsp?status=treat_success");
+                response.sendRedirect("staff_dashboard.html?status=treat_success");
             } else {
-                response.sendRedirect("staff_dashboard.jsp?status=treat_error");
+                response.sendRedirect("staff_dashboard.html?status=treat_error");
             }
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendRedirect("staff_dashboard.jsp?status=treat_error");
+            response.sendRedirect("staff_dashboard.html?status=treat_error");
         } finally {
             try {
                 if (stmt != null) stmt.close();
@@ -54,6 +54,6 @@ public class AddTreatment extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.sendRedirect("staff_dashboard.jsp");
+        response.sendRedirect("staff_dashboard.html");
     }
 }

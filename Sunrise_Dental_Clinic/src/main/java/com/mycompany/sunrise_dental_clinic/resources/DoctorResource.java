@@ -1,20 +1,15 @@
 package com.mycompany.sunrise_dental_clinic.resources;
 
 import Libs.DBUtil;
-import Libs.Doctor;
-import Libs.MySQLUtils;
-
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
+import org.json.JSONObject;
 
 @Path("/doctors")
 public class DoctorResource {
 
-    // Browser Preflight Request (CORS) Handle කිරීම
     @OPTIONS
     public Response handleOptions() {
         return Response.ok()
@@ -24,70 +19,62 @@ public class DoctorResource {
                 .build();
     }
 
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getAllDoctors() {
-        List<Doctor> list = new ArrayList<>();
-        Connection conn = null;
-        try {
-            conn = DBUtil.getConnection();
-            ResultSet rs = MySQLUtils.executeQuery(conn, "SELECT doctor_id, doctor_name, location, tel_no FROM doctors ORDER BY doctor_id DESC");
-            
-            while (rs.next()) {
-                Doctor doc = new Doctor(
-                    rs.getString("doctor_id"),
-                    rs.getString("doctor_name"),
-                    rs.getString("location"),
-                    rs.getString("tel_no")
-                );
-                list.add(doc);
-            }
-            
-            return Response.ok(list)
-                    .header("Access-Control-Allow-Origin", "*")
-                    .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-                    .header("Access-Control-Allow-Headers", "Content-Type, Authorization")
-                    .build();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Response.status(500)
-                    .entity("{\"error\":\"" + e.getMessage() + "\"}")
-                    .header("Access-Control-Allow-Origin", "*")
-                    .build();
-        } finally {
-            DBUtil.closeConnection(conn);
-        }
-    }
-
     @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response addDoctor(Doctor doctor) {
+    public Response addDoctor(String jsonBody) {
         Connection conn = null;
         try {
-            conn = DBUtil.getConnection();
-            String sql = "INSERT INTO doctors (doctor_id, doctor_name, location, tel_no) VALUES (?, ?, ?, ?)";
+            JSONObject data = new JSONObject(jsonBody);
             
-            int rows = MySQLUtils.executeUpdate(conn, sql, 
-                    doctor.getDoctorId(), 
-                    doctor.getName(), 
-                    doctor.getLocation(), 
-                    doctor.getTelNo());
+            // Key mismatch නොවීමට සියලුම format වලින් අගය ලබා ගැනීම
+            String docId = data.optString("doctorId", data.optString("doctor_id", data.optString("id", ""))).trim();
+            String docName = data.optString("doctorName", data.optString("doctor_name", data.optString("name", ""))).trim();
+            String location = data.optString("location", "").trim();
+            String telNo = data.optString("telNo", data.optString("tel_no", "")).trim();
+            String username = data.optString("username", docId).trim();
+            String password = data.optString("password", "1234").trim();
 
-            if (rows > 0) {
-                return Response.status(Response.Status.CREATED)
-                        .entity("{\"message\":\"Doctor added successfully\"}")
-                        .header("Access-Control-Allow-Origin", "*")
-                        .build();
-            } else {
-                return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("{\"error\":\"Failed to insert doctor\"}")
-                        .header("Access-Control-Allow-Origin", "*")
-                        .build();
+            if (docId.isEmpty()) {
+                docId = "DOC-" + (System.currentTimeMillis() % 10000);
             }
+            if (docName.isEmpty()) {
+                return Response.status(400).entity("{\"error\":\"Doctor Name is required\"}").header("Access-Control-Allow-Origin", "*").build();
+            }
+
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Insert Doctor
+            String sql = "INSERT INTO doctors (doctor_id, doctor_name, location, tel_no) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, docId);
+                ps.setString(2, docName);
+                ps.setString(3, location);
+                ps.setString(4, telNo);
+                ps.executeUpdate();
+            }
+
+            // 2. Insert User Login
+            try {
+                String uSql = "INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, 'DOCTOR')";
+                try (PreparedStatement psU = conn.prepareStatement(uSql)) {
+                    psU.setString(1, username);
+                    psU.setString(2, password);
+                    psU.setString(3, docName);
+                    psU.executeUpdate();
+                }
+            } catch (Exception ignored) {}
+
+            conn.commit();
+            return Response.ok("{\"status\":\"success\",\"message\":\"Doctor registered successfully!\"}")
+                    .header("Access-Control-Allow-Origin", "*")
+                    .build();
+
         } catch (Exception e) {
-            e.printStackTrace();
+            if (conn != null) {
+                try { conn.rollback(); } catch (Exception ignored) {}
+            }
             return Response.status(500)
                     .entity("{\"error\":\"" + e.getMessage() + "\"}")
                     .header("Access-Control-Allow-Origin", "*")

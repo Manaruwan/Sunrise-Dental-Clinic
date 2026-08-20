@@ -44,19 +44,19 @@ public class Login extends HttpServlet {
                 session.setAttribute("role", role);
 
                 if ("DOCTOR".equalsIgnoreCase(role)) {
-                    response.sendRedirect("doctor_dashboard.jsp");
+                    response.sendRedirect("doctor_dashboard.html");
                 } else {
-                    response.sendRedirect("staff_dashboard.jsp");
+                    response.sendRedirect("staff_dashboard.html");
                 }
             } else {
                 request.setAttribute("errorMessage", "Invalid Username or Password!");
-                request.getRequestDispatcher("login.jsp").forward(request, response);
+                request.getRequestDispatcher("login.html").forward(request, response);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("errorMessage", "Database Connection Error!");
-            request.getRequestDispatcher("login.jsp").forward(request, response);
+            request.getRequestDispatcher("login.html").forward(request, response);
         } finally {
             DBUtil.closeConnection(conn);
         }

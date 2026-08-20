@@ -1,0 +1,42 @@
+<div id="add-treatment" class="tab-content">
+    <h3 style="margin-bottom: 22px; color: var(--secondary); font-size: 18px; font-weight: 800;">
+        <i class="fa-solid fa-kit-medical" style="color:var(--primary); margin-right:6px;"></i> Register New Dental Treatment & Procedure Fee
+    </h3>
+
+    <form onsubmit="handleTreatmentSubmit(event)">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Treatment / Procedure Name</label>
+                <input type="text" id="treatName" placeholder="e.g. Braces Installation, Teeth Whitening" required>
+            </div>
+            <div class="form-group">
+                <label>Procedure Cost (LKR)</label>
+                <input type="number" step="0.01" id="treatCost" placeholder="e.g. 15000.00" required>
+            </div>
+        </div>
+        <button type="submit" class="btn-submit"><i class="fa-solid fa-plus-circle"></i> Save Treatment Type</button>
+    </form>
+
+    <div class="card-header" style="margin-top: 35px;">
+        <h4 style="color: var(--secondary); font-size: 16px; font-weight: 700;">Available Clinic Treatments & Pricing Catalog</h4>
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="treatSearch" onkeyup="filterTable('treatTable', 'treatSearch')" placeholder="Search Treatments...">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table id="treatTable">
+            <thead>
+                <tr>
+                    <th>Treatment ID</th>
+                    <th>Treatment Name</th>
+                    <th>Procedure Price (LKR)</th>
+                </tr>
+            </thead>
+            <tbody id="treatTableBody">
+                <tr><td colspan="3">Loading treatments...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

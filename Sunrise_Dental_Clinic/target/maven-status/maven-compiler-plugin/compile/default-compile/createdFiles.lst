@@ -1,5 +1,6 @@
+com\mycompany\sunrise_dental_clinic\resources\StaffApiResource.class
 com\mycompany\sunrise_dental_clinic\resources\AuthResource.class
-com\mycompany\sunrise_dental_clinic\resources\BillingResource.class
 com\mycompany\sunrise_dental_clinic\resources\DoctorResource.class
 com\mycompany\sunrise_dental_clinic\resources\AppointmentResource.class
 com\mycompany\sunrise_dental_clinic\JakartaRestConfiguration.class
+com\mycompany\sunrise_dental_clinic\resources\BillingResource.class

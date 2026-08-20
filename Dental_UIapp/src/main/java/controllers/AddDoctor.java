@@ -50,7 +50,7 @@ public class AddDoctor extends HttpServlet {
             stmtUser.executeUpdate();
 
             conn.commit(); // දෙකම සාර්ථකව Insert වූ පසු Commit කිරීම
-            response.sendRedirect("staff_dashboard.jsp?status=doc_success");
+            response.sendRedirect("staff_dashboard.html?status=doc_success");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -59,7 +59,7 @@ public class AddDoctor extends HttpServlet {
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            response.sendRedirect("staff_dashboard.jsp?status=doc_error");
+            response.sendRedirect("staff_dashboard.html?status=doc_error");
         } finally {
             try {
                 if (stmtDoc != null) stmtDoc.close();
@@ -74,6 +74,6 @@ public class AddDoctor extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.sendRedirect("staff_dashboard.jsp");
+        response.sendRedirect("staff_dashboard.html");
     }
 }

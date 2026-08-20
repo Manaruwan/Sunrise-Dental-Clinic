@@ -73,10 +73,10 @@ public class AddAppointment extends HttpServlet {
             if (rows > 0) {
                 conn.commit();
                 // සාර්ථක වූ පසු Staff Dashboard එකට Assigned Appointment Number එකත් සමඟ Redirect කිරීම
-                response.sendRedirect("staff_dashboard.jsp?status=appt_success&apptNum=" + appointmentNum);
+                response.sendRedirect("staff_dashboard.html?status=appt_success&apptNum=" + appointmentNum);
             } else {
                 conn.rollback();
-                response.sendRedirect("staff_dashboard.jsp?status=appt_error");
+                response.sendRedirect("staff_dashboard.html?status=appt_error");
             }
 
         } catch (Exception e) {
@@ -86,7 +86,7 @@ public class AddAppointment extends HttpServlet {
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            response.sendRedirect("staff_dashboard.jsp?status=appt_error");
+            response.sendRedirect("staff_dashboard.html?status=appt_error");
         } finally {
             try {
                 if (stmtPat != null) stmtPat.close();
@@ -101,6 +101,6 @@ public class AddAppointment extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.sendRedirect("staff_dashboard.jsp");
+        response.sendRedirect("staff_dashboard.html");
     }
 }

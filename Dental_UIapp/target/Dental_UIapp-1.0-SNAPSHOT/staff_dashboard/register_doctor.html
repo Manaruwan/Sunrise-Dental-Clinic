@@ -1,0 +1,59 @@
+<div id="add-doctor" class="tab-content active">
+    <h3 style="margin-bottom: 22px; color: var(--secondary); font-size: 18px; font-weight: 800;">
+        <i class="fa-solid fa-user-doctor" style="color:var(--primary); margin-right:6px;"></i> Register New Dental Specialist & Create Login
+    </h3>
+
+    <form onsubmit="handleDoctorSubmit(event)">
+        <div class="form-grid">
+            <div class="form-group">
+                <label>Doctor ID</label>
+                <input type="text" id="docId" placeholder="e.g. DOC-101" required>
+            </div>
+            <div class="form-group">
+                <label>Doctor Full Name</label>
+                <input type="text" id="docName" placeholder="Dr. Firstname Lastname" required>
+            </div>
+            <div class="form-group">
+                <label>Location / Operating Branch</label>
+                <input type="text" id="docLocation" placeholder="e.g. Colombo 03 Branch" required>
+            </div>
+            <div class="form-group">
+                <label>Contact Telephone No.</label>
+                <input type="text" id="docTel" placeholder="10 Digits Contact" pattern="\d{10}" required>
+            </div>
+            <div class="form-group">
+                <label>Doctor Username</label>
+                <input type="text" id="docUser" placeholder="e.g. doc.kasun" required>
+            </div>
+            <div class="form-group">
+                <label>Temporary Password</label>
+                <input type="password" id="docPass" placeholder="Create Password" required>
+            </div>
+        </div>
+        <button type="submit" class="btn-submit"><i class="fa-solid fa-floppy-disk"></i> Register Doctor & Account</button>
+    </form>
+
+    <div class="card-header" style="margin-top: 35px;">
+        <h4 style="color: var(--secondary); font-size: 16px; font-weight: 700;">Registered Medical Specialists</h4>
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="docSearch" onkeyup="filterTable('docTable', 'docSearch')" placeholder="Search Doctors...">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table id="docTable">
+            <thead>
+                <tr>
+                    <th>Doctor ID</th>
+                    <th>Doctor Name</th>
+                    <th>Location / Branch</th>
+                    <th>Telephone No.</th>
+                </tr>
+            </thead>
+            <tbody id="docTableBody">
+                <tr><td colspan="4">Loading doctors...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

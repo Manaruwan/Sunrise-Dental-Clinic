@@ -20,6 +20,6 @@ public class Logout extends HttpServlet {
         if (session != null) {
             session.invalidate(); // Clear Session Data
         }
-        response.sendRedirect("login.jsp");
+        response.sendRedirect("login.html");
     }
 }

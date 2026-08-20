@@ -31,11 +31,11 @@ public class UpdateAppointment extends HttpServlet {
             stmt.setString(2, apptNum);
             stmt.executeUpdate();
 
-            response.sendRedirect("doctor_dashboard.jsp?msg=updated");
+            response.sendRedirect("doctor_dashboard.html?msg=updated");
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendRedirect("doctor_dashboard.jsp?msg=error");
+            response.sendRedirect("doctor_dashboard.html?msg=error");
         } finally {
             DBUtil.closeConnection(conn);
         }

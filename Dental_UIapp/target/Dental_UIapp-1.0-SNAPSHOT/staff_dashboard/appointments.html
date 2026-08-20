@@ -1,0 +1,28 @@
+<div id="appointments" class="tab-content">
+    <div class="card-header">
+        <h3 class="card-title"><i class="fa-solid fa-list-check"></i> Patient Appointment Schedule & Care Tracking</h3>
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="apptSearch" onkeyup="filterTable('apptTable', 'apptSearch')" placeholder="Search Bookings...">
+        </div>
+    </div>
+    
+    <div class="table-responsive">
+        <table id="apptTable">
+            <thead>
+                <tr>
+                    <th>Appt No.</th>
+                    <th>Patient Name</th>
+                    <th>Contact</th>
+                    <th>Assigned Dentist</th>
+                    <th>Treatment</th>
+                    <th>Date & Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="apptTableBody">
+                <tr><td colspan="7">Loading appointments...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>

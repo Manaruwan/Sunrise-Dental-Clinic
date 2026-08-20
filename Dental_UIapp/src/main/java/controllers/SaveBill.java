@@ -41,11 +41,11 @@ public class SaveBill extends HttpServlet {
             
             stmt.executeUpdate();
 
-            response.sendRedirect("doctor_dashboard.jsp?msg=bill_saved");
+            response.sendRedirect("doctor_dashboard.html?msg=bill_saved");
 
         } catch (Exception e) {
             e.printStackTrace();
-            response.sendRedirect("doctor_dashboard.jsp?msg=bill_error");
+            response.sendRedirect("doctor_dashboard.html?msg=bill_error");
         } finally {
             DBUtil.closeConnection(conn);
         }
