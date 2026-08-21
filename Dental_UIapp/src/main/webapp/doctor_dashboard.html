@@ -5,11 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doctor Portal - Sunrise Dental Clinic</title>
     
-    <!-- Google Fonts & FontAwesome -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Shared Stylesheet -->
     <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
@@ -32,38 +29,51 @@
 
     <div class="container">
 
-        <!-- Dashboard Stat Widgets -->
+        <!-- Stat Widgets -->
+      <!-- Doctor Dashboard Stat Widgets (5 Cards) -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon blue">
-                    <i class="fa-solid fa-calendar-day"></i>
-                </div>
+                <div class="stat-icon blue"><i class="fa-solid fa-calendar-check"></i></div>
                 <div class="stat-details">
                     <h4>Assigned Appointments</h4>
                     <p id="statApptCount">0</p>
                 </div>
             </div>
+
             <div class="stat-card">
-                <div class="stat-icon green">
-                    <i class="fa-solid fa-user-check"></i>
-                </div>
+                <div class="stat-icon teal"><i class="fa-solid fa-clock"></i></div>
                 <div class="stat-details">
                     <h4>Pending Queue</h4>
                     <p id="statPendingCount">0</p>
                 </div>
             </div>
+
             <div class="stat-card">
-                <div class="stat-icon purple">
-                    <i class="fa-solid fa-file-invoice-dollar"></i>
+                <div class="stat-icon green"><i class="fa-solid fa-check-double"></i></div>
+                <div class="stat-details">
+                    <h4>Completed Cases</h4>
+                    <p id="statCompletedCount">0</p>
                 </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="fa-solid fa-file-invoice-dollar"></i></div>
                 <div class="stat-details">
                     <h4>Issued Invoices</h4>
                     <p id="statBillCount">0</p>
                 </div>
             </div>
+
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="fa-solid fa-sack-dollar"></i></div>
+                <div class="stat-details">
+                    <h4>Total Billed (LKR)</h4>
+                    <p id="statRevenueCount">0.00</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Navigation Tabs Bar -->
+        <!-- Navigation Tabs -->
         <div class="nav-tabs">
             <button id="tab-btn-appointments-tab" class="tab-btn active" onclick="switchTab('appointments-tab')">
                 <i class="fa-solid fa-list-check"></i> My Appointments
@@ -71,397 +81,19 @@
             <button id="tab-btn-invoices-tab" class="tab-btn" onclick="switchTab('invoices-tab')">
                 <i class="fa-solid fa-receipt"></i> My Issued Invoices
             </button>
-            <button id="tab-btn-doc-guide-tab" class="tab-btn" onclick="switchTab('doc-guide-tab')">
+            <button id="tab-btn-patient-history-tab" class="tab-btn" onclick="switchTab('patient-history-tab')">
+                <i class="fa-solid fa-clock-rotate-left"></i> Patient History
+            </button>
+             <button id="tab-btn-doc-guide-tab" class="tab-btn" onclick="switchTab('doc-guide-tab')">
                 <i class="fa-solid fa-circle-question"></i> Doctor Guide
             </button>
         </div>
 
-        <!-- TAB 1: APPOINTMENT WORKFLOW -->
-        <div id="appointments-tab" class="tab-content active">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="fa-solid fa-list-check"></i> Patient Appointments Assigned to Me
-                </div>
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="appointmentSearch" onkeyup="filterTable('appointmentTable', 'appointmentSearch')" placeholder="Search Patients or Appt No...">
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table id="appointmentTable">
-                    <thead>
-                        <tr>
-                            <th>Appt No.</th>
-                            <th>Patient ID</th>
-                            <th>Patient Name</th>
-                            <th>Treatment</th>
-                            <th>Date & Time</th>
-                            <th>Status</th>
-                            <th>Update Status</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="docApptBody">
-                        <tr><td colspan="8" style="text-align:center;">Loading appointments...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- DOCTOR BILL CALCULATOR DISPLAY -->
-            <div id="invoiceSection" class="invoice-box">
-                <div class="invoice-header">
-                    <h4>
-                        <i class="fa-solid fa-file-invoice-dollar"></i> Patient Billing Summary (via REST API)
-                    </h4>
-                    <span class="badge badge-completed"><i class="fa-solid fa-shield-halved"></i> Live Calculated</span>
-                </div>
-
-                <form id="saveBillForm" onsubmit="handleSaveBill(event)">
-                    <input type="hidden" id="formApptNum">
-                    <input type="hidden" id="formPName">
-                    <input type="hidden" id="formTreatment">
-                    <input type="hidden" id="formConsultFee" value="2000.00">
-                    <input type="hidden" id="formTreatmentFee">
-                    <input type="hidden" id="formTotalAmount">
-
-                    <div class="receipt-details">
-                        <div>
-                            <p>Appointment Number</p>
-                            <span id="billAppt">-</span>
-                        </div>
-                        <div>
-                            <p>Patient Full Name</p>
-                            <span id="billName">-</span>
-                        </div>
-                        <div>
-                            <p>Treatment Category</p>
-                            <span id="billTreatment">-</span>
-                        </div>
-                    </div>
-
-                    <div class="amount-summary">
-                        <div class="amount-row">
-                            <span>Consultation Base Fee</span>
-                            <span>LKR 2,000.00</span>
-                        </div>
-                        <div class="amount-row">
-                            <span>Specific Treatment Fee</span>
-                            <span>LKR <span id="billTreatmentFee">0.00</span></span>
-                        </div>
-                        <div class="amount-row total">
-                            <span>Net Payable Amount</span>
-                            <span>LKR <span id="billTotal">0.00</span></span>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn-submit">
-                        <i class="fa-solid fa-floppy-disk"></i> Issue & Save Invoice Receipt
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- TAB 2: ISSUED INVOICES HISTORY -->
-        <div id="invoices-tab" class="tab-content">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="fa-solid fa-receipt"></i> Invoices Issued
-                </div>
-                <div class="search-box">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" id="billSearch" onkeyup="filterTable('billsTable', 'billSearch')" placeholder="Search Invoices...">
-                </div>
-            </div>
-
-            <div class="table-responsive">
-                <table id="billsTable">
-                    <thead>
-                        <tr>
-                            <th>Receipt ID</th>
-                            <th>Appt No.</th>
-                            <th>Patient Name</th>
-                            <th>Treatment</th>
-                            <th>Consultation Fee</th>
-                            <th>Treatment Fee</th>
-                            <th>Total Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody id="docBillBody">
-                        <tr><td colspan="7" style="text-align:center;">Loading invoices...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TAB 3: DOCTOR GUIDE -->
-        <div id="doc-guide-tab" class="tab-content">
-            <h3 style="margin-bottom: 22px; color: var(--secondary); font-size: 18px; font-weight: 800;">
-                <i class="fa-solid fa-circle-info" style="color:var(--primary); margin-right:6px;"></i> Doctor Portal Operations Guide
-            </h3>
-            
-            <div class="help-box">
-                <h4><i class="fa-solid fa-1"></i> My Appointments View</h4>
-                <p>This table displays patient appointments assigned to you. You can change the appointment status dynamically to Pending, Done, or Completed.</p>
-            </div>
-            <div class="help-box">
-                <h4><i class="fa-solid fa-2"></i> Calculating Patient Bill via REST API</h4>
-                <p>Click the 'Calculate' button on any appointment. The system connects to the REST Service to fetch treatment pricing and totals.</p>
-            </div>
-            <div class="help-box">
-                <h4><i class="fa-solid fa-3"></i> Issuing Invoices</h4>
-                <p>Verify the calculated amounts and click 'Issue & Save Invoice Receipt' to finalize billing.</p>
-            </div>
-        </div>
+        <!-- Dynamic Content Area -->
+        <div id="doctor-dynamic-content"></div>
 
     </div>
 
-    <!-- JavaScript REST API Integration -->
-    <script>
-        const API_PRIMARY = 'http://localhost:8080/Sunrise_Dental_Clinic-1.0-SNAPSHOT/api';
-        const API_FALLBACK = 'http://localhost:8080/Sunrise_Dental_Clinic/api';
-
-        // Logged Doctor Name from LocalStorage
-        let loggedDoctorName = localStorage.getItem('doctorName') || 'uvindu';
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const navNameEl = document.getElementById('docNavName');
-            if (navNameEl) navNameEl.innerText = 'Dr. ' + loggedDoctorName;
-            fetchDoctorAppointments();
-            fetchDoctorBills();
-        });
-
-        async function apiFetch(endpoint, options = {}) {
-            let opts = { ...options };
-            if (!opts.headers) opts.headers = {};
-            if (opts.body && typeof opts.body === 'object') {
-                opts.body = JSON.stringify(opts.body);
-                opts.headers['Content-Type'] = 'application/json';
-            }
-
-            try {
-                let res = await fetch(`${API_PRIMARY}${endpoint}`, opts);
-                if (res.ok) return await res.json();
-                throw new Error();
-            } catch {
-                let res = await fetch(`${API_FALLBACK}${endpoint}`, opts);
-                if (!res.ok) {
-                    let err = await res.text();
-                    throw new Error(err || `HTTP ${res.status}`);
-                }
-                return await res.json();
-            }
-        }
-
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            
-            const targetContent = document.getElementById(tabId);
-            const targetBtn = document.getElementById('tab-btn-' + tabId);
-
-            if (targetContent) targetContent.classList.add('active');
-            if (targetBtn) targetBtn.classList.add('active');
-        }
-
-        // 1. Load Doctor Appointments
-        async function fetchDoctorAppointments() {
-            try {
-                const list = await apiFetch('/all_appointments');
-                const tbody = document.getElementById('docApptBody');
-                if (!tbody) return;
-
-                tbody.innerHTML = '';
-                let myAppts = list.filter(a => {
-                    const doc = (a.dentist_name || a.dentistname || '').toLowerCase();
-                    return doc.includes(loggedDoctorName.toLowerCase());
-                });
-
-                if (myAppts.length === 0) myAppts = list;
-
-                document.getElementById('statApptCount').innerText = myAppts.length;
-                let pendingCount = 0;
-
-                if (myAppts.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">No appointments found.</td></tr>';
-                    return;
-                }
-
-                myAppts.forEach(a => {
-                    const apptNo = a.appointment_num || a.appointment_no || a.id || '-';
-                    const patId = a.patient_id || 'PAT-001';
-                    const pName = a.patient_name || a.name || 'Patient';
-                    const treatment = a.treatment_type || '-';
-                    const dateTime = a.appt_date_time || '-';
-                    const st = a.status || 'Pending';
-
-                    if (st.toLowerCase() === 'pending') pendingCount++;
-
-                    let badgeClass = 'badge-pending';
-                    let icon = 'fa-regular fa-clock';
-                    if (st.toLowerCase() === 'done') { badgeClass = 'badge-done'; icon = 'fa-solid fa-spinner'; }
-                    else if (st.toLowerCase() === 'completed') { badgeClass = 'badge-completed'; icon = 'fa-solid fa-check-double'; }
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${apptNo}</strong></td>
-                            <td><span style="color:#0284c7; font-weight:700;">${patId}</span></td>
-                            <td><strong>${pName}</strong></td>
-                            <td>${treatment}</td>
-                            <td><i class="fa-regular fa-calendar" style="color:var(--text-muted); margin-right:4px;"></i> ${dateTime}</td>
-                            <td><span class="badge ${badgeClass}"><i class="${icon}"></i> ${st}</span></td>
-                            <td>
-                                <div style="display:flex; gap:6px;">
-                                    <select id="statusSelect_${apptNo}" class="select-status">
-                                        <option value="Pending" ${st==='Pending'?'selected':''}>Pending</option>
-                                        <option value="Done" ${st==='Done'?'selected':''}>Done</option>
-                                        <option value="Completed" ${st==='Completed'?'selected':''}>Completed</option>
-                                    </select>
-                                    <button class="btn-update" onclick="updateAppointmentStatus('${apptNo}')">Save</button>
-                                </div>
-                            </td>
-                            <td>
-                                <button class="btn-calc" onclick="calculateBillViaAPI('${apptNo}', '${pName}', '${treatment}')">
-                                    <i class="fa-solid fa-calculator"></i> Calculate
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                document.getElementById('statPendingCount').innerText = pendingCount;
-            } catch (e) {
-                document.getElementById('docApptBody').innerHTML = '<tr><td colspan="8" style="color:red; text-align:center;">Failed to load appointments.</td></tr>';
-            }
-        }
-
-        // 2. Load Issued Invoices
-        async function fetchDoctorBills() {
-            try {
-                const list = await apiFetch('/bills');
-                const tbody = document.getElementById('docBillBody');
-                if (!tbody) return;
-
-                tbody.innerHTML = '';
-                document.getElementById('statBillCount').innerText = list.length || 0;
-
-                if (!list || list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No bills issued yet.</td></tr>';
-                    return;
-                }
-
-                list.forEach(b => {
-                    const bId = 'BIL-' + (b.bill_id || b.id);
-                    const apptNo = b.appointment_num || '-';
-                    const patName = b.patient_name || '-';
-                    const treat = b.treatment_type || '-';
-                    const consult = Number(b.consultation_fee || 0).toFixed(2);
-                    const treatFee = Number(b.treatment_fee || 0).toFixed(2);
-                    const total = Number(b.total_amount || 0).toFixed(2);
-
-                    tbody.innerHTML += `
-                        <tr>
-                            <td><strong>${bId}</strong></td>
-                            <td>${apptNo}</td>
-                            <td><strong>${patName}</strong></td>
-                            <td>${treat}</td>
-                            <td>LKR ${consult}</td>
-                            <td>LKR ${treatFee}</td>
-                            <td><strong style="color:#10b981;">LKR ${total}</strong></td>
-                        </tr>
-                    `;
-                });
-            } catch (e) {
-                document.getElementById('docBillBody').innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Failed to load invoices.</td></tr>';
-            }
-        }
-
-        // 3. Calculate Bill via API
-        async function calculateBillViaAPI(apptNum, pName, treatment) {
-            try {
-                let billData;
-                try {
-                    billData = await apiFetch('/billing/' + apptNum);
-                } catch {
-                    let fee = 3000.00;
-                    if (treatment.toLowerCase().includes('clean')) fee = 5000.00;
-                    else if (treatment.toLowerCase().includes('fill')) fee = 4000.00;
-                    else if (treatment.toLowerCase().includes('root')) fee = 25000.00;
-                    else if (treatment.toLowerCase().includes('extract')) fee = 6000.00;
-
-                    billData = {
-                        appointmentNumber: apptNum,
-                        patientName: pName,
-                        treatment: treatment,
-                        consultationFee: 2000.00,
-                        treatmentFee: fee,
-                        totalAmount: 2000.00 + fee
-                    };
-                }
-
-                document.getElementById('invoiceSection').style.display = 'block';
-                document.getElementById('billAppt').innerText = billData.appointmentNumber;
-                document.getElementById('billName').innerText = billData.patientName;
-                document.getElementById('billTreatment').innerText = billData.treatment;
-                document.getElementById('billTreatmentFee').innerText = Number(billData.treatmentFee).toLocaleString('en-US', {minimumFractionDigits: 2});
-                document.getElementById('billTotal').innerText = Number(billData.totalAmount).toLocaleString('en-US', {minimumFractionDigits: 2});
-
-                document.getElementById('formApptNum').value = billData.appointmentNumber;
-                document.getElementById('formPName').value = billData.patientName;
-                document.getElementById('formTreatment').value = billData.treatment;
-                document.getElementById('formTreatmentFee').value = billData.treatmentFee;
-                document.getElementById('formTotalAmount').value = billData.totalAmount;
-
-                document.getElementById('invoiceSection').scrollIntoView({ behavior: 'smooth' });
-            } catch (err) {
-                alert('Calculation failed: ' + err.message);
-            }
-        }
-
-        // 4. Save Invoice Form
-        function handleSaveBill(e) {
-            e.preventDefault();
-            alert("Invoice Generated & Saved Successfully!");
-            document.getElementById('invoiceSection').style.display = 'none';
-            fetchDoctorBills();
-        }
-
-        // 5. Update Status
-        function updateAppointmentStatus(apptNo) {
-            const val = document.getElementById('statusSelect_' + apptNo).value;
-            alert('Appointment ' + apptNo + ' status updated to ' + val + '!');
-            fetchDoctorAppointments();
-        }
-
-        // 6. Search Filter
-        function filterTable(tableId, inputId) {
-            const input = document.getElementById(inputId);
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById(tableId);
-            if (!table) return;
-            const tr = table.getElementsByTagName("tr");
-
-            for (let i = 1; i < tr.length; i++) {
-                let showRow = false;
-                const td = tr[i].getElementsByTagName("td");
-                for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        const txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                            showRow = true;
-                            break;
-                        }
-                    }
-                }
-                tr[i].style.display = showRow ? "" : "none";
-            }
-        }
-
-        function logoutDoctor() {
-            localStorage.removeItem('doctorName');
-            window.location.href = 'login.html';
-        }
-    </script>
-
+    <script src="js/doctor_dashboard.js"></script>
 </body>
 </html>

@@ -7,8 +7,9 @@ import jakarta.ws.rs.core.Response;
 import java.sql.*;
 import org.json.JSONObject;
 
-@Path("/doctors")
+@Path("/doctor-service") // "doctors" හෝ "/" තිබේ නම් එය doctor-service ලෙස වෙනස් කරන්න
 public class DoctorResource {
+    // ...
 
     @OPTIONS
     public Response handleOptions() {

@@ -4,7 +4,12 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="8870a5bc-9901-4d35-b31b-8ad0257ba317" name="Changes" comment="" />
+    <list default="true" id="8870a5bc-9901-4d35-b31b-8ad0257ba317" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dental_UIapp/src/main/webapp/js/dashboard.js" beforeDir="false" afterPath="$PROJECT_DIR$/Dental_UIapp/src/main/webapp/js/dashboard.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dental_UIapp/target/Dental_UIapp-1.0-SNAPSHOT.war" beforeDir="false" afterPath="$PROJECT_DIR$/Dental_UIapp/target/Dental_UIapp-1.0-SNAPSHOT.war" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Dental_UIapp/target/Dental_UIapp-1.0-SNAPSHOT/js/dashboard.js" beforeDir="false" afterPath="$PROJECT_DIR$/Dental_UIapp/target/Dental_UIapp-1.0-SNAPSHOT/js/dashboard.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -16,7 +21,7 @@
     </persistenceIdMap>
   </component>
   <component name="Git.Settings">
-    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/Sunrise_Dental_Clinic" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
@@ -31,7 +36,7 @@
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "main",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "C:/Users/uvind/OneDrive/Documents/NetBeansProjects/Sunrise-Dental-Clinic",
     "vue.rearranger.settings.migration": "true"

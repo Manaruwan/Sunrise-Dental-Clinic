@@ -25,9 +25,9 @@
                 <i class="fa-solid fa-user-gear"></i>
                 <span id="navStaffName">Staff Officer</span>
             </div>
-            <a href="login.html" class="btn-logout">
-                <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
-            </a>
+            <a href="javascript:void(0)" onclick="logoutStaff()" class="btn-logout">
+    <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+</a>
         </div>
     </div>
 
@@ -35,21 +35,66 @@
 
         <!-- Dashboard Stat Widgets -->
         <div class="stats-grid">
-            <div class="stat-card"><div class="stat-icon blue"><i class="fa-solid fa-user-doctor"></i></div><div class="stat-details"><h4>Doctors</h4><p id="statDocCount">0</p></div></div>
-            <div class="stat-card"><div class="stat-icon teal"><i class="fa-solid fa-kit-medical"></i></div><div class="stat-details"><h4>Treatments</h4><p id="statTreatCount">0</p></div></div>
-            <div class="stat-card"><div class="stat-icon green"><i class="fa-solid fa-calendar-plus"></i></div><div class="stat-details"><h4>Bookings</h4><p id="statApptCount">0</p></div></div>
-            <div class="stat-card"><div class="stat-icon purple"><i class="fa-solid fa-hospital-user"></i></div><div class="stat-details"><h4>Patient Queue</h4><p id="statPendingCount">0</p></div></div>
-            <div class="stat-card"><div class="stat-icon orange"><i class="fa-solid fa-file-invoice"></i></div><div class="stat-details"><h4>Receipts</h4><p id="statBillCount">0</p></div></div>
+            <div class="stat-card">
+                <div class="stat-icon blue"><i class="fa-solid fa-user-doctor"></i></div>
+                <div class="stat-details">
+                    <h4>Doctors</h4>
+                    <p id="statDocCount">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon teal"><i class="fa-solid fa-kit-medical"></i></div>
+                <div class="stat-details">
+                    <h4>Treatments</h4>
+                    <p id="statTreatCount">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green"><i class="fa-solid fa-calendar-plus"></i></div>
+                <div class="stat-details">
+                    <h4>Bookings</h4>
+                    <p id="statApptCount">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon purple"><i class="fa-solid fa-hospital-user"></i></div>
+                <div class="stat-details">
+                    <h4>Patient Queue</h4>
+                    <p id="statPendingCount">0</p>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orange"><i class="fa-solid fa-file-invoice"></i></div>
+                <div class="stat-details">
+                    <h4>Receipts</h4>
+                    <p id="statBillCount">0</p>
+                </div>
+            </div>
         </div>
 
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
-            <button id="tab-btn-add-doctor" class="tab-btn active" onclick="switchTab('add-doctor')"><i class="fa-solid fa-user-plus"></i> Register Doctor</button>
-            <button id="tab-btn-add-treatment" class="tab-btn" onclick="switchTab('add-treatment')"><i class="fa-solid fa-kit-medical"></i> Add Treatment</button>
-            <button id="tab-btn-add-appointment" class="tab-btn" onclick="switchTab('add-appointment')"><i class="fa-solid fa-calendar-plus"></i> New Appointment</button>
-            <button id="tab-btn-appointments" class="tab-btn" onclick="switchTab('appointments')"><i class="fa-solid fa-calendar-check"></i> Schedule & Details</button>
-            <button id="tab-btn-billing-history" class="tab-btn" onclick="switchTab('billing-history')"><i class="fa-solid fa-file-invoice-dollar"></i> Saved Receipts</button>
-            <button id="tab-btn-help" class="tab-btn" onclick="switchTab('help')"><i class="fa-solid fa-circle-question"></i> Staff Guide</button>
+            <button id="tab-btn-add-doctor" class="tab-btn active" onclick="switchTab('add-doctor')">
+                <i class="fa-solid fa-user-doctor"></i> Register Doctor
+            </button>
+            <button id="tab-btn-register-patient" class="tab-btn" onclick="switchTab('register-patient')">
+                <i class="fa-solid fa-user-plus"></i> Register Patient
+            </button>
+            <button id="tab-btn-add-treatment" class="tab-btn" onclick="switchTab('add-treatment')">
+                <i class="fa-solid fa-kit-medical"></i> Add Treatment
+            </button>
+            <button id="tab-btn-add-appointment" class="tab-btn" onclick="switchTab('add-appointment')">
+                <i class="fa-solid fa-calendar-plus"></i> New Appointment
+            </button>
+            <button id="tab-btn-appointments" class="tab-btn" onclick="switchTab('appointments')">
+                <i class="fa-solid fa-calendar-check"></i> Schedule & Details
+            </button>
+            <button id="tab-btn-billing-history" class="tab-btn" onclick="switchTab('billing-history')">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Saved Receipts
+            </button>
+            <button id="tab-btn-help" class="tab-btn" onclick="switchTab('help')">
+                <i class="fa-solid fa-circle-question"></i> Staff Guide
+            </button>
         </div>
 
         <!-- Dynamic Container for Included HTML Components -->
