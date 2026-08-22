@@ -1,3 +1,24 @@
+// Strict Token Auth Guard: User කෙනෙක් හෝ Token එකක් නැතිනම් කෙලින්ම Login පිටුවට Redirect කරයි
+(function checkAuth() {
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    const user = localStorage.getItem('loggedUser');
+    if (!token || !user) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('login.html');
+    }
+})();
+
+// Browser Back Button Cache Guard: Back button එබූ විට Cache එකෙන් පැමිණීම වළක්වයි
+window.addEventListener('pageshow', function(event) {
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    if (event.persisted || !token || !localStorage.getItem('loggedUser')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('login.html');
+    }
+});
+
 // Dynamic Base URL Configuration
 const API_ENDPOINTS = [
     'http://localhost:8080/Sunrise_Dental_Clinic/api',
@@ -12,6 +33,12 @@ async function apiFetch(endpoint, options = {}) {
     if (!finalOptions.headers) {
         finalOptions.headers = {};
     }
+    
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    if (token) {
+        finalOptions.headers['Authorization'] = 'Bearer ' + token;
+    }
+
     if (finalOptions.body && typeof finalOptions.body === 'object') {
         finalOptions.body = JSON.stringify(finalOptions.body);
         finalOptions.headers['Content-Type'] = 'application/json';
@@ -33,7 +60,6 @@ async function apiFetch(endpoint, options = {}) {
 
 // 1. Component Loader & Dynamic Form Event Binder
 async function loadComponents() {
-    // Logged User Name Display (Shows Full Name or Fallback)
     const loggedUser = localStorage.getItem('loggedUser') || localStorage.getItem('username') || 'Staff Officer';
     const navStaffName = document.getElementById('navStaffName');
     if (navStaffName) {
@@ -75,22 +101,25 @@ async function loadComponents() {
 
     bindFormEvents();
     fetchAllData();
+
+    // Default පළමු Tab එක Auto Open කිරීම
+    setTimeout(() => {
+        switchTab('add-doctor');
+    }, 50);
 }
 
-// 2. Attach Click/Submit Listeners ONLY to actual form action buttons
+// 2. Form Buttons Event Binder
 function bindFormEvents() {
     document.addEventListener('click', function(e) {
         const targetBtn = e.target.closest('button');
         if (!targetBtn) return;
 
-        // Tab මාරු කරන Tab Buttons නම් Ignore කිරීම
         if (targetBtn.classList.contains('tab-btn')) {
             return;
         }
 
         const btnText = targetBtn.innerText.trim();
 
-        // Form Submit Buttons පමණක් හඳුනා ගැනීම
         if (targetBtn.type === 'submit' || targetBtn.classList.contains('btn-submit') || targetBtn.classList.contains('btn-register-doc')) {
             if (btnText.includes('Register Doctor') || btnText.includes('Register Doctor & Account')) {
                 e.preventDefault();
@@ -121,40 +150,44 @@ function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     
-    // Normalize tab IDs
     let target = document.getElementById(tabId);
     let btn = document.getElementById('tab-btn-' + tabId);
 
-    if (!target && tabId === 'add-appointment') {
-        target = document.getElementById('new-appointment');
-    } else if (!target && tabId === 'new-appointment') {
-        target = document.getElementById('add-appointment');
-    }
+    if (!target && tabId === 'add-doctor') target = document.getElementById('register-doctor');
+    if (!target && tabId === 'register-doctor') target = document.getElementById('add-doctor');
+    if (!target && tabId === 'add-appointment') target = document.getElementById('new-appointment');
+    if (!target && tabId === 'new-appointment') target = document.getElementById('add-appointment');
+    if (!target && tabId === 'schedule-details') target = document.getElementById('appointments');
+    if (!target && tabId === 'appointments') target = document.getElementById('schedule-details');
 
-    if (!btn && tabId === 'add-appointment') {
-        btn = document.getElementById('tab-btn-new-appointment');
-    } else if (!btn && tabId === 'new-appointment') {
-        btn = document.getElementById('tab-btn-add-appointment');
-    }
+    if (!btn && tabId === 'add-doctor') btn = document.getElementById('tab-btn-register-doctor');
+    if (!btn && tabId === 'register-doctor') btn = document.getElementById('tab-btn-add-doctor');
+    if (!btn && tabId === 'add-appointment') btn = document.getElementById('tab-btn-new-appointment');
+    if (!btn && tabId === 'new-appointment') btn = document.getElementById('tab-btn-add-appointment');
+    if (!btn && tabId === 'schedule-details') btn = document.getElementById('tab-btn-appointments');
+    if (!btn && tabId === 'appointments') btn = document.getElementById('tab-btn-schedule-details');
 
     if (target) target.classList.add('active');
     if (btn) btn.classList.add('active');
 
-    // Fresh data load on tab open
-    if (tabId.includes('appointment') || tabId === 'add-appointment' || tabId === 'new-appointment') {
+    if (tabId === 'add-doctor' || tabId === 'register-doctor') {
         loadDoctors();
-        loadTreatments();
-        loadPatients();
     } else if (tabId === 'register-patient') {
         loadPatients();
-    } else if (tabId === 'add-doctor') {
-        loadDoctors();
     } else if (tabId === 'add-treatment') {
         loadTreatments();
+    } else if (tabId.includes('appointment') || tabId === 'add-appointment' || tabId === 'new-appointment') {
+        loadDoctors();
+        loadTreatments();
+        loadPatients();
+    } else if (tabId === 'appointments' || tabId === 'schedule-details') {
+        loadAppointments();
+    } else if (tabId === 'saved-receipts') {
+        loadBills();
     }
 }
 
-// 3. Load Doctors (Populates Table, Stat Box & Dropdowns)
+// 3. Load Doctors (With Edit & Delete Buttons)
 async function loadDoctors() {
     const tbody = document.getElementById('docTableBody');
     const statDoc = document.getElementById('statDocCount');
@@ -183,7 +216,7 @@ async function loadDoctors() {
         if (tbody) tbody.innerHTML = '';
 
         if (doctors.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No doctors registered yet.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No doctors registered yet.</td></tr>';
             return;
         }
 
@@ -193,12 +226,28 @@ async function loadDoctors() {
             const loc = doc.location || doc.branch || 'Nugegoda';
             const tel = doc.tel_no || doc.telNo || doc.telephone || '-';
 
+            const safeName = name.replace(/'/g, "\\'");
+            const safeLoc = loc.replace(/'/g, "\\'");
+            const safeTel = tel.replace(/'/g, "\\'");
+
             if (tbody) {
                 tbody.innerHTML += `<tr>
                     <td><strong>${id}</strong></td>
                     <td><strong>${name}</strong></td>
                     <td><i class="fa-solid fa-location-dot" style="color:#888; margin-right:4px;"></i> ${loc}</td>
                     <td><i class="fa-solid fa-phone" style="color:#888; margin-right:4px;"></i> ${tel}</td>
+                    <td style="text-align:center;">
+                        <div style="display:inline-flex; gap:8px;">
+                            <button type="button" onclick="openEditDoctorModal('${id}', '${safeName}', '${safeLoc}', '${safeTel}')" 
+                                    style="padding:6px 12px; background:#0284c7; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Edit Doctor">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteDoctor('${id}', '${safeName}')" 
+                                    style="padding:6px 12px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Delete Doctor">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>`;
             }
 
@@ -211,11 +260,63 @@ async function loadDoctors() {
         });
     } catch (err) {
         console.error('Load Doctors Error:', err);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Failed to load doctors.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center;">Failed to load doctors.</td></tr>';
     }
 }
 
-// 4. Load Patients & Auto-fill Dropdown
+// Modal Handlers for Edit Doctor
+window.openEditDoctorModal = function(id, name, location, tel) {
+    const modal = document.getElementById('editDoctorModal');
+    if (!modal) return;
+    document.getElementById('editDocId').value = id;
+    document.getElementById('editDocName').value = name;
+    document.getElementById('editDocLocation').value = location;
+    document.getElementById('editDocTel').value = tel;
+    modal.style.display = 'flex';
+};
+
+window.closeEditDocModal = function() {
+    const modal = document.getElementById('editDoctorModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.handleUpdateDoctor = async function(e) {
+    if (e) e.preventDefault();
+    const id = document.getElementById('editDocId').value.trim();
+    const name = document.getElementById('editDocName').value.trim();
+    const location = document.getElementById('editDocLocation').value.trim();
+    const tel = document.getElementById('editDocTel').value.trim();
+
+    try {
+        const encodedId = encodeURIComponent(id);
+        const res = await apiFetch(`/doctors/${encodedId}`, {
+            method: 'PUT',
+            body: { doctorName: name, location: location, telNo: tel }
+        });
+        alert(res.message || 'Doctor updated successfully!');
+        closeEditDocModal();
+        loadDoctors();
+    } catch (err) {
+        alert('Failed to update doctor: ' + err.message);
+    }
+};
+
+window.deleteDoctor = async function(docId, docName) {
+    if (!confirm(`Are you sure you want to remove Doctor: "${docName}" (ID: ${docId})?`)) {
+        return;
+    }
+
+    try {
+        const encodedId = encodeURIComponent(docId.trim());
+        const res = await apiFetch(`/doctors/${encodedId}`, { method: 'DELETE' });
+        alert(res.message || 'Doctor deleted successfully!');
+        loadDoctors();
+    } catch (err) {
+        alert('Failed to delete doctor: ' + err.message);
+    }
+};
+
+// 4. Load Patients (With Edit & Delete Buttons)
 async function loadPatients() {
     const tbody = document.getElementById('patientTableBody');
     const dropdown = document.getElementById('patientSelectDropdown');
@@ -228,7 +329,7 @@ async function loadPatients() {
         if (dropdown) dropdown.innerHTML = '<option value="">-- Choose Existing Patient --</option>';
 
         if (allPatientsCache.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted);">No patients registered yet.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No patients registered yet.</td></tr>';
             return;
         }
 
@@ -238,12 +339,28 @@ async function loadPatients() {
             const address = p.address || '-';
             const contact = p.contact || '-';
 
+            const safeName = name.replace(/'/g, "\\'");
+            const safeAddr = address.replace(/'/g, "\\'");
+            const safeContact = contact.replace(/'/g, "\\'");
+
             if (tbody) {
                 tbody.innerHTML += `<tr>
                     <td><strong>${pId}</strong></td>
                     <td><strong>${name}</strong></td>
                     <td>${address}</td>
                     <td><i class="fa-solid fa-phone" style="color:#888; margin-right:4px;"></i> ${contact}</td>
+                    <td style="text-align:center;">
+                        <div style="display:inline-flex; gap:8px;">
+                            <button type="button" onclick="openEditPatientModal('${pId}', '${safeName}', '${safeAddr}', '${safeContact}')" 
+                                    style="padding:6px 12px; background:#0284c7; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Edit Patient">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deletePatient('${pId}', '${safeName}')" 
+                                    style="padding:6px 12px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Delete Patient">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>`;
             }
 
@@ -256,11 +373,62 @@ async function loadPatients() {
         });
     } catch (e) {
         console.error('Failed to load patients:', e);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Failed to load patients.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center;">Failed to load patients.</td></tr>';
     }
 }
 
-// Auto-Fill Fields when Patient is selected
+// Modal Handlers for Edit Patient
+window.openEditPatientModal = function(id, name, address, contact) {
+    const modal = document.getElementById('editPatientModal');
+    if (!modal) return;
+    document.getElementById('editPatId').value = id;
+    document.getElementById('editPatName').value = name;
+    document.getElementById('editPatAddress').value = address;
+    document.getElementById('editPatContact').value = contact;
+    modal.style.display = 'flex';
+};
+
+window.closeEditPatientModal = function() {
+    const modal = document.getElementById('editPatientModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.handleUpdatePatient = async function(e) {
+    if (e) e.preventDefault();
+    const id = document.getElementById('editPatId').value.trim();
+    const name = document.getElementById('editPatName').value.trim();
+    const address = document.getElementById('editPatAddress').value.trim();
+    const contact = document.getElementById('editPatContact').value.trim();
+
+    try {
+        const encodedId = encodeURIComponent(id);
+        const res = await apiFetch(`/patients/${encodedId}`, {
+            method: 'PUT',
+            body: { name: name, address: address, contact: contact }
+        });
+        alert(res.message || 'Patient updated successfully!');
+        closeEditPatientModal();
+        loadPatients();
+    } catch (err) {
+        alert('Failed to update patient: ' + err.message);
+    }
+};
+
+window.deletePatient = async function(patId, patName) {
+    if (!confirm(`Are you sure you want to remove Patient: "${patName}" (${patId})?`)) {
+        return;
+    }
+
+    try {
+        const encodedId = encodeURIComponent(patId.trim());
+        const res = await apiFetch(`/patients/${encodedId}`, { method: 'DELETE' });
+        alert(res.message || 'Patient deleted successfully!');
+        loadPatients();
+    } catch (err) {
+        alert('Failed to delete patient: ' + err.message);
+    }
+};
+
 window.onPatientSelected = function(patId) {
     if (!patId) return;
     const pat = allPatientsCache.find(p => (p.patient_id === patId || p.patientId === patId));
@@ -275,7 +443,7 @@ window.onPatientSelected = function(patId) {
     }
 };
 
-// 5. Load Treatments
+// 5. Load Treatments (With Edit & Delete Buttons)
 async function loadTreatments() {
     try {
         const list = await apiFetch('/treatments');
@@ -289,37 +457,107 @@ async function loadTreatments() {
         if (statT) statT.innerText = list.length || 0;
 
         if (!list || list.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="3" style="text-align:center; color:var(--text-muted);">No treatments found.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:var(--text-muted); padding:20px;">No treatments found.</td></tr>';
             return;
         }
 
         list.forEach(t => {
             const id = t.treatment_id || t.treatmentId || t.id || '-';
             const name = t.treatment_name || t.treatmentName || t.name || '-';
-            const cost = Number(t.cost || t.price || 0).toFixed(2);
+            const rawCost = Number(t.cost || t.price || 0);
+            const costFormatted = rawCost.toFixed(2);
+
+            const safeName = name.replace(/'/g, "\\'");
 
             if (tbody) {
                 tbody.innerHTML += `<tr>
                     <td><strong>TRT-${id}</strong></td>
                     <td><strong>${name}</strong></td>
-                    <td><strong style="color:#10b981;">LKR ${cost}</strong></td>
+                    <td><strong style="color:#10b981;">LKR ${costFormatted}</strong></td>
+                    <td style="text-align:center;">
+                        <div style="display:inline-flex; gap:8px;">
+                            <button type="button" onclick="openEditTreatmentModal('${id}', '${safeName}', ${rawCost})" 
+                                    style="padding:6px 12px; background:#0284c7; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Edit Treatment">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteTreatment('${id}', '${safeName}')" 
+                                    style="padding:6px 12px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Delete Treatment">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>`;
             }
             if (dropdown) {
                 const opt = document.createElement('option');
                 opt.value = name;
-                opt.textContent = `${name} (LKR ${cost})`;
+                opt.textContent = `${name} (LKR ${costFormatted})`;
                 dropdown.appendChild(opt);
             }
         });
     } catch (e) {
         if (document.getElementById('treatTableBody')) {
-            document.getElementById('treatTableBody').innerHTML = '<tr><td colspan="3" style="color:red; text-align:center;">Failed to load treatments.</td></tr>';
+            document.getElementById('treatTableBody').innerHTML = '<tr><td colspan="4" style="color:red; text-align:center;">Failed to load treatments.</td></tr>';
         }
     }
 }
 
-// 6. Load Appointments
+// Modal Handlers for Edit Treatment
+window.openEditTreatmentModal = function(id, name, cost) {
+    const modal = document.getElementById('editTreatmentModal');
+    if (!modal) return;
+    document.getElementById('editTreatId').value = id;
+    document.getElementById('editTreatName').value = name;
+    document.getElementById('editTreatCost').value = cost;
+    modal.style.display = 'flex';
+};
+
+window.closeEditTreatmentModal = function() {
+    const modal = document.getElementById('editTreatmentModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.handleUpdateTreatment = async function(e) {
+    if (e) e.preventDefault();
+    const id = document.getElementById('editTreatId').value.trim();
+    const name = document.getElementById('editTreatName').value.trim();
+    const cost = parseFloat(document.getElementById('editTreatCost').value);
+
+    if (!name || isNaN(cost)) {
+        alert('Please enter a valid treatment name and cost.');
+        return;
+    }
+
+    try {
+        const res = await apiFetch(`/treatments/${id}`, {
+            method: 'PUT',
+            body: { treatmentName: name, cost: cost }
+        });
+        alert(res.message || 'Treatment updated successfully!');
+        closeEditTreatmentModal();
+        loadTreatments();
+    } catch (err) {
+        console.error('Update treatment error:', err);
+        alert('Failed to update treatment: ' + err.message);
+    }
+};
+
+window.deleteTreatment = async function(treatId, treatName) {
+    if (!confirm(`Are you sure you want to remove Treatment: "${treatName}" (TRT-${treatId})?`)) {
+        return;
+    }
+
+    try {
+        const res = await apiFetch(`/treatments/${treatId}`, { method: 'DELETE' });
+        alert(res.message || 'Treatment deleted successfully!');
+        loadTreatments();
+    } catch (err) {
+        console.error('Delete treatment error:', err);
+        alert('Failed to delete treatment: ' + err.message);
+    }
+};
+
+// 6. Load Appointments (With Edit & Delete Buttons)
 async function loadAppointments() {
     try {
         const list = await apiFetch('/all_appointments');
@@ -331,7 +569,7 @@ async function loadAppointments() {
         let pending = 0;
 
         if (!list || list.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">No appointments found.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted); padding:20px;">No appointments found.</td></tr>';
             return;
         }
 
@@ -356,15 +594,32 @@ async function loadAppointments() {
                 icon = 'fa-solid fa-check-double'; 
             }
 
+            const safeDentist = dentist.replace(/'/g, "\\'");
+            const safeTreat = treat.replace(/'/g, "\\'");
+            const safeDt = dt.replace(/'/g, "\\'");
+            const safeSt = st.replace(/'/g, "\\'");
+
             if (tbody) {
                 tbody.innerHTML += `<tr>
                     <td><strong>${apptNo}</strong></td>
                     <td><strong>${patName}</strong></td>
-                    <td><i class="fa-solid fa-phone" style="color:var(--text-muted);"></i> ${contact}</td>
+                    <td><i class="fa-solid fa-phone" style="color:var(--text-muted); margin-right:4px;"></i> ${contact}</td>
                     <td>${dentist}</td>
                     <td>${treat}</td>
-                    <td><i class="fa-regular fa-calendar" style="color:var(--text-muted);"></i> ${dt}</td>
+                    <td><i class="fa-regular fa-calendar" style="color:var(--text-muted); margin-right:4px;"></i> ${dt}</td>
                     <td><span class="badge ${badgeClass}"><i class="${icon}"></i> ${st}</span></td>
+                    <td style="text-align:center;">
+                        <div style="display:inline-flex; gap:8px;">
+                            <button type="button" onclick="openEditAppointmentModal('${apptNo}', '${safeDentist}', '${safeTreat}', '${safeDt}', '${safeSt}')" 
+                                    style="padding:6px 12px; background:#0284c7; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Edit Booking">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteAppointment('${apptNo}')" 
+                                    style="padding:6px 12px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Delete Booking">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
                 </tr>`;
             }
         });
@@ -373,10 +628,113 @@ async function loadAppointments() {
         if (statP) statP.innerText = pending;
     } catch (e) {
         if (document.getElementById('apptTableBody')) {
-            document.getElementById('apptTableBody').innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Failed to load appointments.</td></tr>';
+            document.getElementById('apptTableBody').innerHTML = '<tr><td colspan="8" style="color:red; text-align:center;">Failed to load appointments.</td></tr>';
         }
     }
 }
+
+// Modal Handlers for Edit Appointment
+window.openEditAppointmentModal = async function(apptNo, dentist, treatment, dt, status) {
+    const modal = document.getElementById('editAppointmentModal');
+    if (!modal) return;
+
+    document.getElementById('editApptNo').value = apptNo;
+    document.getElementById('editApptStatus').value = status || 'Pending';
+
+    if (dt && dt.includes('T')) {
+        document.getElementById('editApptDateTime').value = dt.substring(0, 16);
+    } else {
+        document.getElementById('editApptDateTime').value = dt || '';
+    }
+
+    const docSelect = document.getElementById('editApptDoctor');
+    if (docSelect) {
+        docSelect.innerHTML = '';
+        try {
+            const doctors = await apiFetch('/doctors');
+            (Array.isArray(doctors) ? doctors : []).forEach(d => {
+                const dName = d.doctor_name || d.doctorName || d.name;
+                const opt = document.createElement('option');
+                opt.value = dName;
+                opt.textContent = `${dName} (${d.location || 'Nugegoda'})`;
+                if (dName.toLowerCase() === dentist.toLowerCase()) opt.selected = true;
+                docSelect.appendChild(opt);
+            });
+        } catch(e) {}
+    }
+
+    const treatSelect = document.getElementById('editApptTreatment');
+    if (treatSelect) {
+        treatSelect.innerHTML = '';
+        try {
+            const treatments = await apiFetch('/treatments');
+            (Array.isArray(treatments) ? treatments : []).forEach(t => {
+                const tName = t.treatment_name || t.treatmentName || t.name;
+                const opt = document.createElement('option');
+                opt.value = tName;
+                opt.textContent = tName;
+                if (tName.toLowerCase() === treatment.toLowerCase()) opt.selected = true;
+                treatSelect.appendChild(opt);
+            });
+        } catch(e) {}
+    }
+
+    modal.style.display = 'flex';
+};
+
+window.closeEditAppointmentModal = function() {
+    const modal = document.getElementById('editAppointmentModal');
+    if (modal) modal.style.display = 'none';
+};
+
+window.handleUpdateAppointment = async function(e) {
+    if (e) e.preventDefault();
+    const apptNo = document.getElementById('editApptNo').value.trim();
+    const dentist = document.getElementById('editApptDoctor').value;
+    const treatment = document.getElementById('editApptTreatment').value;
+    const dateTime = document.getElementById('editApptDateTime').value;
+    const status = document.getElementById('editApptStatus').value;
+
+    if (!dentist || !treatment || !dateTime) {
+        alert('Please complete all fields.');
+        return;
+    }
+
+    try {
+        const encodedNo = encodeURIComponent(apptNo);
+        const res = await apiFetch(`/appointments/${encodedNo}`, {
+            method: 'PUT',
+            body: { 
+                dentistName: dentist, 
+                treatmentType: treatment, 
+                apptDateTime: dateTime, 
+                status: status 
+            }
+        });
+        alert(res.message || 'Appointment updated successfully!');
+        closeEditAppointmentModal();
+        loadAppointments();
+    } catch (err) {
+        console.error('Update appointment error:', err);
+        alert('Failed to update appointment: ' + err.message);
+    }
+};
+
+window.deleteAppointment = async function(apptNo) {
+    if (!confirm(`Are you sure you want to delete appointment: "${apptNo}"?`)) {
+        return;
+    }
+
+    try {
+        const encodedNo = encodeURIComponent(apptNo.trim());
+        const res = await apiFetch(`/appointments/${encodedNo}`, { method: 'DELETE' });
+        alert(res.message || 'Appointment deleted successfully!');
+        loadAppointments();
+    } catch (err) {
+        console.error('Delete appointment error:', err);
+        alert('Failed to delete appointment: ' + err.message);
+    }
+};
 
 // 7. Load Bills
 async function loadBills() {
@@ -402,6 +760,9 @@ async function loadBills() {
             const treatFee = Number(b.treatment_fee || b.treatmentFee || 0).toFixed(2);
             const total = Number(b.total_amount || b.totalAmount || 0).toFixed(2);
 
+            const safePName = patName.replace(/'/g, "\\'");
+            const safeTreat = treat.replace(/'/g, "\\'");
+
             if (tbody) {
                 tbody.innerHTML += `<tr>
                     <td><strong>${bId}</strong></td>
@@ -412,7 +773,7 @@ async function loadBills() {
                     <td>LKR ${treatFee}</td>
                     <td><strong style="color:#10b981;">LKR ${total}</strong></td>
                     <td>
-                        <button onclick="printSingleBill('${bId}', '${apptNo}', '${patName}', '${treat}', ${consult}, ${treatFee}, ${total})" 
+                        <button type="button" onclick="printSingleBill('${bId}', '${apptNo}', '${safePName}', '${safeTreat}', ${consult}, ${treatFee}, ${total})" 
                                 class="btn-submit" style="padding: 7px 14px; font-size:12px; background:var(--primary);">
                             <i class="fa-solid fa-print"></i> Print Receipt
                         </button>
@@ -428,7 +789,6 @@ async function loadBills() {
 }
 
 // 8. Submit Handlers
-
 async function submitDoctor() {
     const inputs = document.querySelectorAll('#add-doctor input, #register-doctor input, .tab-content.active input');
     
@@ -464,9 +824,9 @@ async function submitDoctor() {
 }
 
 async function submitPatient() {
-    const nameInput = document.getElementById('patientRegName') || document.querySelector('#add-patient input[placeholder*="Full Name"]');
-    const addrInput = document.getElementById('patientRegAddress') || document.querySelector('#add-patient input[placeholder*="Address"]');
-    const contactInput = document.getElementById('patientRegContact') || document.querySelector('#add-patient input[placeholder*="077"]');
+    const nameInput = document.getElementById('patientRegName') || document.querySelector('#register-patient input[placeholder*="Full Name"]');
+    const addrInput = document.getElementById('patientRegAddress') || document.querySelector('#register-patient input[placeholder*="Resident"]');
+    const contactInput = document.getElementById('patientRegContact') || document.querySelector('#register-patient input[placeholder*="077"]');
 
     const name = nameInput ? nameInput.value.trim() : '';
     const address = addrInput ? addrInput.value.trim() : 'N/A';
@@ -493,9 +853,11 @@ async function submitPatient() {
 }
 
 async function submitTreatment() {
-    const inputs = document.querySelectorAll('#add-treatment input, .tab-content.active input');
-    const name = inputs[0]?.value.trim();
-    const cost = parseFloat(inputs[1]?.value);
+    const nameInput = document.getElementById('treatRegName') || document.querySelector('#add-treatment input[type="text"]');
+    const costInput = document.getElementById('treatRegCost') || document.querySelector('#add-treatment input[type="number"]');
+
+    const name = nameInput ? nameInput.value.trim() : '';
+    const cost = costInput ? parseFloat(costInput.value) : NaN;
 
     if (!name || isNaN(cost)) {
         alert('Please enter a valid treatment name and procedure cost.');
@@ -508,7 +870,8 @@ async function submitTreatment() {
             body: { treatmentName: name, cost: cost } 
         });
         alert(res.message || 'Treatment added successfully!');
-        inputs.forEach(i => i.value = '');
+        if (nameInput) nameInput.value = '';
+        if (costInput) costInput.value = '';
         loadTreatments();
     } catch (err) {
         alert('Failed to save treatment: ' + err.message);
@@ -591,10 +954,13 @@ function filterTable(tableId, inputId) {
     }
 }
 
-// 11. Logout Handler
+// 11. Clean Logout Handler
 function logoutStaff() {
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
     localStorage.clear();
-    window.location.href = 'login.html';
+    sessionStorage.clear();
+    window.location.replace('login.html');
 }
 
 window.addEventListener('DOMContentLoaded', loadComponents);

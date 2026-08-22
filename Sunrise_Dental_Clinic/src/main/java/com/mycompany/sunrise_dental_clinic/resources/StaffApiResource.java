@@ -5,6 +5,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.sql.*;
+import java.util.UUID;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -23,7 +24,11 @@ public class StaffApiResource {
         return addCors(Response.ok()).build();
     }
 
-    // 1. GET ALL DOCTORS
+    // =========================================================================
+    // 1. DOCTORS CRUD
+    // =========================================================================
+
+    // 1.1 GET ALL DOCTORS
     @GET
     @Path("doctors")
     @Produces(MediaType.APPLICATION_JSON)
@@ -57,7 +62,7 @@ public class StaffApiResource {
         }
     }
 
-    // 2. POST - REGISTER DOCTOR
+    // 1.2 POST - REGISTER DOCTOR
     @POST
     @Path("doctors")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -112,7 +117,86 @@ public class StaffApiResource {
         }
     }
 
-    // 3. GET ALL TREATMENTS
+    // 1.3 PUT - UPDATE DOCTOR DETAILS
+    @PUT
+    @Path("doctors/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateDoctor(@PathParam("id") String docId, String jsonBody) {
+        Connection conn = null;
+        try {
+            JSONObject data = new JSONObject(jsonBody);
+            String docName = data.optString("doctorName", data.optString("doctor_name", ""));
+            String location = data.optString("location", "Nugegoda");
+            String telNo = data.optString("telNo", data.optString("tel_no", "-"));
+
+            conn = DBUtil.getConnection();
+            String sql = "UPDATE doctors SET doctor_name = ?, location = ?, tel_no = ? WHERE doctor_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, docName);
+                ps.setString(2, location);
+                ps.setString(3, telNo);
+                ps.setString(4, docId);
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Doctor details updated successfully!\"}")).build();
+                } else {
+                    return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Doctor not found\"}")).build();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // 1.4 DELETE - REMOVE DOCTOR (Cascaded Safety)
+    @DELETE
+    @Path("doctors/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteDoctor(@PathParam("id") String docId) {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psUser = conn.prepareStatement("DELETE FROM users WHERE username = ?")) {
+                psUser.setString(1, docId);
+                psUser.executeUpdate();
+            } catch (Exception ignored) {}
+
+            String sql = "DELETE FROM doctors WHERE doctor_id = ?";
+            int rows = 0;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, docId);
+                rows = ps.executeUpdate();
+            }
+
+            conn.commit();
+
+            if (rows > 0) {
+                return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Doctor removed successfully!\"}")).build();
+            } else {
+                return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Doctor not found\"}")).build();
+            }
+        } catch (Exception e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (Exception ignored) {}
+            }
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // =========================================================================
+    // 2. TREATMENTS CRUD
+    // =========================================================================
+
+    // 2.1 GET ALL TREATMENTS
     @GET
     @Path("treatments")
     @Produces(MediaType.APPLICATION_JSON)
@@ -138,7 +222,7 @@ public class StaffApiResource {
         }
     }
 
-    // 4. POST - ADD TREATMENT
+    // 2.2 POST - ADD TREATMENT
     @POST
     @Path("treatments")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -165,7 +249,70 @@ public class StaffApiResource {
         }
     }
 
-    // 5. GET ALL PATIENTS
+    // 2.3 PUT - UPDATE TREATMENT
+    @PUT
+    @Path("treatments/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateTreatment(@PathParam("id") int treatmentId, String jsonBody) {
+        Connection conn = null;
+        try {
+            JSONObject data = new JSONObject(jsonBody);
+            String name = data.getString("treatmentName");
+            double cost = data.getDouble("cost");
+
+            conn = DBUtil.getConnection();
+            String sql = "UPDATE treatments SET treatment_name = ?, cost = ? WHERE treatment_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, name);
+                ps.setDouble(2, cost);
+                ps.setInt(3, treatmentId);
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Treatment updated successfully!\"}")).build();
+                } else {
+                    return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Treatment not found\"}")).build();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // 2.4 DELETE - REMOVE TREATMENT
+    @DELETE
+    @Path("treatments/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteTreatment(@PathParam("id") int treatmentId) {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            String sql = "DELETE FROM treatments WHERE treatment_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, treatmentId);
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Treatment deleted successfully!\"}")).build();
+                } else {
+                    return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Treatment not found\"}")).build();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // =========================================================================
+    // 3. PATIENTS CRUD
+    // =========================================================================
+
+    // 3.1 GET ALL PATIENTS
     @GET
     @Path("patients")
     @Produces(MediaType.APPLICATION_JSON)
@@ -192,7 +339,7 @@ public class StaffApiResource {
         }
     }
 
-    // 6. POST - REGISTER PATIENT
+    // 3.2 POST - REGISTER PATIENT
     @POST
     @Path("patients")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -224,7 +371,86 @@ public class StaffApiResource {
         }
     }
 
-    // 7. GET ALL APPOINTMENTS
+    // 3.3 PUT - UPDATE PATIENT DETAILS
+    @PUT
+    @Path("patients/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updatePatient(@PathParam("id") String patId, String jsonBody) {
+        Connection conn = null;
+        try {
+            JSONObject data = new JSONObject(jsonBody);
+            String patName = data.getString("name");
+            String address = data.optString("address", "N/A");
+            String contact = data.getString("contact");
+
+            conn = DBUtil.getConnection();
+            String sql = "UPDATE patients SET name = ?, address = ?, contact = ? WHERE patient_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, patName);
+                ps.setString(2, address);
+                ps.setString(3, contact);
+                ps.setString(4, patId);
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Patient details updated successfully!\"}")).build();
+                } else {
+                    return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Patient not found\"}")).build();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // 3.4 DELETE - REMOVE PATIENT (Cascaded Safety)
+    @DELETE
+    @Path("patients/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deletePatient(@PathParam("id") String patId) {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psAppt = conn.prepareStatement("DELETE FROM appointments WHERE patient_id = ?")) {
+                psAppt.setString(1, patId);
+                psAppt.executeUpdate();
+            } catch (Exception ignored) {}
+
+            String sql = "DELETE FROM patients WHERE patient_id = ?";
+            int rows = 0;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, patId);
+                rows = ps.executeUpdate();
+            }
+
+            conn.commit();
+
+            if (rows > 0) {
+                return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Patient record deleted successfully!\"}")).build();
+            } else {
+                return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Patient not found\"}")).build();
+            }
+        } catch (Exception e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (Exception ignored) {}
+            }
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // =========================================================================
+    // 4. APPOINTMENTS CRUD
+    // =========================================================================
+
+    // 4.1 GET ALL APPOINTMENTS
     @GET
     @Path("all_appointments")
     @Produces(MediaType.APPLICATION_JSON)
@@ -253,7 +479,7 @@ public class StaffApiResource {
         }
     }
 
-    // 8. POST - CREATE APPOINTMENT
+    // 4.2 POST - CREATE APPOINTMENT
     @POST
     @Path("create_appointment")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -306,7 +532,84 @@ public class StaffApiResource {
         }
     }
 
-    // 9. POST - UPDATE APPOINTMENT STATUS
+    // 4.3 PUT - UPDATE APPOINTMENT DETAILS (Full Edit)
+    @PUT
+    @Path("appointments/{id}")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateAppointmentDetails(@PathParam("id") String apptNo, String jsonBody) {
+        Connection conn = null;
+        try {
+            JSONObject data = new JSONObject(jsonBody);
+            String dentist = data.optString("dentistName", "");
+            String treatment = data.optString("treatmentType", "");
+            String dateTime = data.optString("apptDateTime", "");
+            String status = data.optString("status", "Pending");
+
+            conn = DBUtil.getConnection();
+            String sql = "UPDATE appointments SET dentist_name = ?, treatment_type = ?, appt_date_time = ?, status = ? WHERE appointment_num = ?";
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, dentist);
+                ps.setString(2, treatment);
+                ps.setString(3, dateTime);
+                ps.setString(4, status);
+                ps.setString(5, apptNo);
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Appointment updated successfully!\"}")).build();
+                } else {
+                    return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Appointment not found\"}")).build();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // 4.4 DELETE - REMOVE APPOINTMENT (Cascaded Safety)
+    @DELETE
+    @Path("appointments/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteAppointment(@PathParam("id") String apptNo) {
+        Connection conn = null;
+        try {
+            conn = DBUtil.getConnection();
+            conn.setAutoCommit(false);
+
+            try (PreparedStatement psB = conn.prepareStatement("DELETE FROM bills WHERE appointment_num = ?")) {
+                psB.setString(1, apptNo);
+                psB.executeUpdate();
+            } catch (Exception ignored) {}
+
+            String sql = "DELETE FROM appointments WHERE appointment_num = ?";
+            int rows = 0;
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, apptNo);
+                rows = ps.executeUpdate();
+            }
+
+            conn.commit();
+
+            if (rows > 0) {
+                return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Appointment deleted successfully!\"}")).build();
+            } else {
+                return addCors(Response.status(404).entity("{\"status\":\"error\",\"message\":\"Appointment not found\"}")).build();
+            }
+        } catch (Exception e) {
+            if (conn != null) {
+                try { conn.rollback(); } catch (Exception ignored) {}
+            }
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // 4.5 POST - UPDATE APPOINTMENT STATUS (Quick Toggle)
     @POST
     @Path("update_appointment_status")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -342,7 +645,11 @@ public class StaffApiResource {
         }
     }
 
-    // 10. GET ALL BILLS
+    // =========================================================================
+    // 5. BILLS & INVOICING
+    // =========================================================================
+
+    // 5.1 GET ALL BILLS
     @GET
     @Path("bills")
     @Produces(MediaType.APPLICATION_JSON)
@@ -370,7 +677,7 @@ public class StaffApiResource {
         }
     }
 
-    // 11. POST - ISSUE & SAVE BILL (Dual Path Support: /save_bill & /bills)
+    // 5.2 POST - SAVE BILL (Dual Path Support)
     @POST
     @Path("save_bill")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -418,7 +725,11 @@ public class StaffApiResource {
         }
     }
 
-    // 12. POST - AUTHENTICATE USER LOGIN
+    // =========================================================================
+    // 6. AUTHENTICATION & SECURITY
+    // =========================================================================
+
+    // 6.1 POST - USER LOGIN WITH TOKEN
     @POST
     @Path("login")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -441,11 +752,16 @@ public class StaffApiResource {
                 ps.setString(2, password);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
+                        String userRole = rs.getString("role");
+                        String fullName = rs.getString("full_name") != null ? rs.getString("full_name") : rs.getString("username");
+                        String authToken = "SUNRISE_TOKEN_" + UUID.randomUUID().toString() + "_" + System.currentTimeMillis();
+
                         JSONObject res = new JSONObject();
                         res.put("status", "success");
+                        res.put("token", authToken);
                         res.put("username", rs.getString("username"));
-                        res.put("role", rs.getString("role"));
-                        res.put("full_name", rs.getString("full_name") != null ? rs.getString("full_name") : rs.getString("username"));
+                        res.put("role", userRole);
+                        res.put("full_name", fullName);
                         return addCors(Response.ok(res.toString())).build();
                     }
                 }
@@ -454,8 +770,10 @@ public class StaffApiResource {
             // Fallback for staff demo login
             if (username.equalsIgnoreCase("staff") || username.equalsIgnoreCase("staff1")) {
                 if (password.equals("1234") || password.equals("admin") || password.equals("staff") || password.equals("staff123")) {
+                    String authToken = "SUNRISE_TOKEN_" + UUID.randomUUID().toString() + "_" + System.currentTimeMillis();
                     JSONObject res = new JSONObject();
                     res.put("status", "success");
+                    res.put("token", authToken);
                     res.put("username", username);
                     res.put("role", "Staff");
                     res.put("full_name", "Staff Officer");

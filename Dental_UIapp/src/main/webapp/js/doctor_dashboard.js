@@ -1,15 +1,64 @@
-// Base API Endpoints configuration
+// Dynamic Base URL Configuration
 const API_ENDPOINTS = [
     'http://localhost:8080/Sunrise_Dental_Clinic/api',
     'http://localhost:8080/Sunrise_Dental_Clinic-1.0-SNAPSHOT/api',
     'http://localhost:8080/Sunrise%20Dental%20Clinic/api'
 ];
 
-let loggedDoctorName = localStorage.getItem('doctorName') || localStorage.getItem('loggedUser') || 'uvindu';
+// Strict Token Auth Guard: Token එකක් හෝ Doctor session එකක් නොමැති නම් කෙලින්ම Login එකට Redirect කිරීම
+(function checkDoctorAuth() {
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    const doctor = localStorage.getItem('doctorName') || localStorage.getItem('loggedUser');
+
+    if (!token || !doctor) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('login.html');
+    }
+})();
+
+// Browser Back Button Cache Guard: Logout වූ පසු Browser එකේ Back button එක එබූ විට නැවත ඒම වළක්වයි
+window.addEventListener('pageshow', function(event) {
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    if (event.persisted || !token || !localStorage.getItem('loggedUser')) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.replace('login.html');
+    }
+});
+
+// Doctor Clean Logout Handler
+function logoutDoctor() {
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.replace('login.html');
+}
+
+let loggedDoctorName = localStorage.getItem('doctorName') || localStorage.getItem('loggedUser') || 'Doctor';
+
+// Helper Function: Match doctor records accurately (handles "Dr.", extra spaces, and case-insensitivity)
+function isMatchingDoctor(recordDocName, currentDoc) {
+    if (!recordDocName || !currentDoc) return false;
+    
+    const clean = (str) => str.toString().toLowerCase().replace(/^dr\.?\s*/i, '').replace(/[^a-z0-9]/g, '').trim();
+    
+    const target = clean(currentDoc);
+    const incoming = clean(recordDocName);
+    
+    return incoming.includes(target) || target.includes(incoming);
+}
 
 async function apiFetch(endpoint, options = {}) {
     let opts = { ...options };
     if (!opts.headers) opts.headers = {};
+    
+    const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+    if (token) {
+        opts.headers['Authorization'] = 'Bearer ' + token;
+    }
+
     if (opts.body && typeof opts.body === 'object') {
         opts.body = JSON.stringify(opts.body);
         opts.headers['Content-Type'] = 'application/json';
@@ -32,7 +81,7 @@ async function apiFetch(endpoint, options = {}) {
 // 1. Dynamic Component Loader
 async function loadDoctorComponents() {
     const navNameEl = document.getElementById('docNavName');
-    if (navNameEl) navNameEl.innerText = 'Dr. ' + loggedDoctorName;
+    if (navNameEl) navNameEl.innerText = 'Dr. ' + loggedDoctorName.replace(/^dr\.?\s*/i, '');
 
     const files = [
         'doctor_dashboard/appointments.html',
@@ -51,7 +100,7 @@ async function loadDoctorComponents() {
                     contentArea.innerHTML += await res.text();
                 }
             } catch (e) {
-                console.error('Failed to load:', file);
+                console.error('Failed to load component:', file);
             }
         }
     }
@@ -59,28 +108,40 @@ async function loadDoctorComponents() {
     fetchDoctorAppointments();
     fetchDoctorBills();
     fetchDoctorPatientHistory();
+
+    // Default පළමු Tab එක Auto Open කිරීම
+    setTimeout(() => {
+        switchTab('appointments-tab');
+    }, 50);
 }
 
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
 
-    const target = document.getElementById(tabId);
-    const btn = document.getElementById('tab-btn-' + tabId);
+    let target = document.getElementById(tabId);
+    let btn = document.getElementById('tab-btn-' + tabId);
+
+    // Fallback ID normalization
+    if (!target && tabId === 'appointments-tab') target = document.getElementById('my-appointments');
+    if (!target && tabId === 'my-appointments') target = document.getElementById('appointments-tab');
+
+    if (!btn && tabId === 'appointments-tab') btn = document.getElementById('tab-btn-my-appointments');
+    if (!btn && tabId === 'my-appointments') btn = document.getElementById('tab-btn-appointments-tab');
 
     if (target) target.classList.add('active');
     if (btn) btn.classList.add('active');
 
     if (tabId === 'appointments-tab' || tabId === 'my-appointments') {
         fetchDoctorAppointments();
-    } else if (tabId === 'invoices-tab') {
+    } else if (tabId === 'invoices-tab' || tabId === 'my-invoices') {
         fetchDoctorBills();
-    } else if (tabId === 'patient-history-tab') {
+    } else if (tabId === 'patient-history-tab' || tabId === 'patient-history') {
         fetchDoctorPatientHistory();
     }
 }
 
-// 2. Fetch Doctor Appointments (Updates Assigned, Pending, and Completed Cards)
+// 2. Fetch Doctor Appointments (Strict Doctor-Only Filter)
 async function fetchDoctorAppointments() {
     try {
         const list = await apiFetch('/all_appointments');
@@ -88,12 +149,12 @@ async function fetchDoctorAppointments() {
         if (!tbody) return;
 
         tbody.innerHTML = '';
-        let myAppts = list.filter(a => {
-            const doc = (a.dentist_name || a.dentistname || '').toLowerCase();
-            return doc.includes(loggedDoctorName.toLowerCase());
-        });
 
-        if (myAppts.length === 0) myAppts = list;
+        // Filter appointments belonging ONLY to the logged doctor
+        const myAppts = (Array.isArray(list) ? list : []).filter(a => {
+            const doc = a.dentist_name || a.dentistName || '';
+            return isMatchingDoctor(doc, loggedDoctorName);
+        });
 
         const statAppt = document.getElementById('statApptCount');
         if (statAppt) statAppt.innerText = myAppts.length;
@@ -102,7 +163,9 @@ async function fetchDoctorAppointments() {
         let completedCount = 0;
 
         if (myAppts.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">No appointments found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#64748b; padding:20px;">No appointments assigned to you.</td></tr>';
+            if (document.getElementById('statPendingCount')) document.getElementById('statPendingCount').innerText = '0';
+            if (document.getElementById('statCompletedCount')) document.getElementById('statCompletedCount').innerText = '0';
             return;
         }
 
@@ -127,6 +190,9 @@ async function fetchDoctorAppointments() {
                 icon = 'fa-solid fa-check-double'; 
             }
 
+            const safePName = pName.replace(/'/g, "\\'");
+            const safeTreat = treatment.replace(/'/g, "\\'");
+
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${apptNo}</strong></td>
@@ -146,7 +212,7 @@ async function fetchDoctorAppointments() {
                         </div>
                     </td>
                     <td>
-                        <button class="btn-calc" onclick="calculateBillViaAPI('${apptNo}', '${pName}', '${treatment}')">
+                        <button class="btn-calc" onclick="calculateBillViaAPI('${apptNo}', '${safePName}', '${safeTreat}')">
                             <i class="fa-solid fa-calculator"></i> Calculate
                         </button>
                     </td>
@@ -193,23 +259,36 @@ window.updateAppointmentStatus = async function(apptNo) {
     }
 };
 
-// 4. Fetch Issued Bills & Accurately Calculate Total Revenue
+// 4. Fetch Issued Bills (Filtered strictly by Assigned Doctor)
 async function fetchDoctorBills() {
     try {
-        const list = await apiFetch('/bills');
+        const [billsList, apptsList] = await Promise.all([
+            apiFetch('/bills'),
+            apiFetch('/all_appointments')
+        ]);
+
         const tbody = document.getElementById('docBillBody');
         const statBill = document.getElementById('statBillCount');
         const statRev = document.getElementById('statRevenueCount');
 
-        let billsArray = Array.isArray(list) ? list : [];
-        if (statBill) statBill.innerText = billsArray.length;
+        const myApptNumbers = new Set(
+            (Array.isArray(apptsList) ? apptsList : [])
+                .filter(a => isMatchingDoctor(a.dentist_name || a.dentistName, loggedDoctorName))
+                .map(a => a.appointment_num || a.appointment_no)
+        );
 
+        let billsArray = (Array.isArray(billsList) ? billsList : []).filter(b => {
+            const apptNo = b.appointment_num || b.appointmentNum;
+            return myApptNumbers.has(apptNo);
+        });
+
+        if (statBill) statBill.innerText = billsArray.length;
         if (tbody) tbody.innerHTML = '';
 
         let totalRevenue = 0;
 
         if (billsArray.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No bills issued yet.</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No invoices issued for your appointments yet.</td></tr>';
             if (statRev) statRev.innerText = '0.00';
             return;
         }
@@ -240,7 +319,6 @@ async function fetchDoctorBills() {
             }
         });
 
-        // Update Total Revenue Widget
         if (statRev) {
             statRev.innerText = totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
@@ -252,7 +330,7 @@ async function fetchDoctorBills() {
     }
 }
 
-// 5. Calculate Bill Live Function
+// 5. Live Bill Calculation
 window.calculateBillViaAPI = async function(apptNum, pName, treatment) {
     try {
         let fee = 3000.00;
@@ -299,7 +377,7 @@ window.calculateBillViaAPI = async function(apptNum, pName, treatment) {
     }
 };
 
-// 6. Save Bill to Database with Fallback Endpoints
+// 6. Save Bill to Database
 window.handleSaveBill = async function(e) {
     if (e) e.preventDefault();
 
@@ -329,7 +407,6 @@ window.handleSaveBill = async function(e) {
         try {
             res = await apiFetch('/save_bill', { method: 'POST', body: payload });
         } catch (err1) {
-            // Secondary fallback endpoint
             res = await apiFetch('/bills', { method: 'POST', body: payload });
         }
 
@@ -345,7 +422,7 @@ window.handleSaveBill = async function(e) {
     }
 };
 
-// 7. Fetch Patient History
+// 7. Fetch Patient History (Strict Doctor-Only Filter)
 async function fetchDoctorPatientHistory() {
     try {
         const list = await apiFetch('/all_appointments');
@@ -354,15 +431,13 @@ async function fetchDoctorPatientHistory() {
 
         tbody.innerHTML = '';
 
-        let myHistory = list.filter(a => {
-            const doc = (a.dentist_name || a.dentistname || '').toLowerCase();
-            return doc.includes(loggedDoctorName.toLowerCase());
+        let myHistory = (Array.isArray(list) ? list : []).filter(a => {
+            const doc = a.dentist_name || a.dentistname || '';
+            return isMatchingDoctor(doc, loggedDoctorName);
         });
 
-        if (myHistory.length === 0) myHistory = list;
-
-        if (!myHistory || myHistory.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No patient treatment history found.</td></tr>';
+        if (myHistory.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b; padding:20px;">No patient treatment history found for you.</td></tr>';
             return;
         }
 
@@ -423,14 +498,6 @@ function filterTable(tableId, inputId) {
         }
         tr[i].style.display = show ? '' : 'none';
     }
-}
-
-// 9. Logout Doctor
-function logoutDoctor() {
-    localStorage.removeItem('doctorName');
-    localStorage.removeItem('loggedUser');
-    localStorage.removeItem('userRole');
-    window.location.href = 'login.html';
 }
 
 window.addEventListener('DOMContentLoaded', loadDoctorComponents);

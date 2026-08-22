@@ -218,13 +218,43 @@
     </div>
 
     <script>
+        // Active Session Guard: Token එකක් පවතී නම් කෙලින්ම අදාළ Dashboard එකට Redirect කරයි
+        (function redirectIfLoggedIn() {
+            const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+            const role = localStorage.getItem('userRole');
+            const user = localStorage.getItem('loggedUser');
+            
+            if (token && user && role) {
+                if (role.toLowerCase() === 'doctor') {
+                    window.location.replace('doctor_dashboard.html');
+                } else {
+                    window.location.replace('staff_dashboard.html');
+                }
+            }
+        })();
+
+        // Back Button Cache Guard
+        window.addEventListener('pageshow', function(event) {
+            const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
+            const role = localStorage.getItem('userRole');
+            const user = localStorage.getItem('loggedUser');
+            
+            if (token && user && role) {
+                if (role.toLowerCase() === 'doctor') {
+                    window.location.replace('doctor_dashboard.html');
+                } else {
+                    window.location.replace('staff_dashboard.html');
+                }
+            }
+        });
+
         const API_ENDPOINTS = [
             'http://localhost:8080/Sunrise_Dental_Clinic/api',
             'http://localhost:8080/Sunrise_Dental_Clinic-1.0-SNAPSHOT/api',
             'http://localhost:8080/Sunrise%20Dental%20Clinic/api'
         ];
 
-        // Eye Icon Toggle Function
+        // Password Show/Hide Toggle
         function togglePasswordVisibility() {
             const pwdInput = document.getElementById('password');
             const eyeIcon = document.getElementById('eyeIcon');
@@ -291,18 +321,23 @@
                 }
             }
 
-            if (responseData && (responseData.status === 'success' || responseData.role)) {
+            if (responseData && (responseData.status === 'success' || responseData.token || responseData.role)) {
+                // Token සහ Session Data ආරක්ෂිතව Store කිරීම
+                const token = responseData.token || ('SUNRISE_TOKEN_' + Date.now() + '_' + Math.random().toString(36).substring(2));
                 const displayName = responseData.full_name || responseData.fullName || responseData.name || responseData.username || usernameInput;
                 const role = (responseData.role || 'Staff').trim();
 
+                sessionStorage.setItem('authToken', token);
+                localStorage.setItem('authToken', token);
                 localStorage.setItem('loggedUser', displayName);
                 localStorage.setItem('doctorName', displayName);
                 localStorage.setItem('userRole', role);
 
+                // History replace මඟින් Redirect කිරීම (Back Button Protection)
                 if (role.toLowerCase() === 'doctor') {
-                    window.location.href = 'doctor_dashboard.html';
+                    window.location.replace('doctor_dashboard.html');
                 } else {
-                    window.location.href = 'staff_dashboard.html';
+                    window.location.replace('staff_dashboard.html');
                 }
             } else if (!errorBox || errorBox.style.display !== 'block') {
                 showError('Login failed. Please check your credentials or server connection.');
