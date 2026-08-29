@@ -28,7 +28,6 @@ public class StaffApiResource {
     // 1. DOCTORS CRUD
     // =========================================================================
 
-    // 1.1 GET ALL DOCTORS
     @GET
     @Path("doctors")
     @Produces(MediaType.APPLICATION_JSON)
@@ -62,7 +61,6 @@ public class StaffApiResource {
         }
     }
 
-    // 1.2 POST - REGISTER DOCTOR
     @POST
     @Path("doctors")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -117,7 +115,6 @@ public class StaffApiResource {
         }
     }
 
-    // 1.3 PUT - UPDATE DOCTOR DETAILS
     @PUT
     @Path("doctors/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -152,7 +149,6 @@ public class StaffApiResource {
         }
     }
 
-    // 1.4 DELETE - REMOVE DOCTOR (Cascaded Safety)
     @DELETE
     @Path("doctors/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -196,7 +192,6 @@ public class StaffApiResource {
     // 2. TREATMENTS CRUD
     // =========================================================================
 
-    // 2.1 GET ALL TREATMENTS
     @GET
     @Path("treatments")
     @Produces(MediaType.APPLICATION_JSON)
@@ -222,7 +217,6 @@ public class StaffApiResource {
         }
     }
 
-    // 2.2 POST - ADD TREATMENT
     @POST
     @Path("treatments")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -249,7 +243,6 @@ public class StaffApiResource {
         }
     }
 
-    // 2.3 PUT - UPDATE TREATMENT
     @PUT
     @Path("treatments/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -282,7 +275,6 @@ public class StaffApiResource {
         }
     }
 
-    // 2.4 DELETE - REMOVE TREATMENT
     @DELETE
     @Path("treatments/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -312,7 +304,6 @@ public class StaffApiResource {
     // 3. PATIENTS CRUD
     // =========================================================================
 
-    // 3.1 GET ALL PATIENTS
     @GET
     @Path("patients")
     @Produces(MediaType.APPLICATION_JSON)
@@ -339,7 +330,6 @@ public class StaffApiResource {
         }
     }
 
-    // 3.2 POST - REGISTER PATIENT
     @POST
     @Path("patients")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -371,7 +361,6 @@ public class StaffApiResource {
         }
     }
 
-    // 3.3 PUT - UPDATE PATIENT DETAILS
     @PUT
     @Path("patients/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -406,7 +395,6 @@ public class StaffApiResource {
         }
     }
 
-    // 3.4 DELETE - REMOVE PATIENT (Cascaded Safety)
     @DELETE
     @Path("patients/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -450,7 +438,6 @@ public class StaffApiResource {
     // 4. APPOINTMENTS CRUD
     // =========================================================================
 
-    // 4.1 GET ALL APPOINTMENTS
     @GET
     @Path("all_appointments")
     @Produces(MediaType.APPLICATION_JSON)
@@ -479,7 +466,6 @@ public class StaffApiResource {
         }
     }
 
-    // 4.2 POST - CREATE APPOINTMENT
     @POST
     @Path("create_appointment")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -488,26 +474,30 @@ public class StaffApiResource {
         Connection conn = null;
         try {
             JSONObject data = new JSONObject(jsonBody);
-            String patName = data.getString("patientName");
-            String address = data.optString("address", "N/A");
-            String contact = data.getString("contact");
-            String dentist = data.getString("dentistName");
-            String treatment = data.getString("treatmentType");
-            String apptDateTime = data.getString("apptDateTime");
+            String existingPatId = data.optString("patientId", "").trim();
+            String patName = data.optString("patientName", "").trim();
+            String address = data.optString("address", "N/A").trim();
+            String contact = data.optString("contact", "").trim();
+            String dentist = data.optString("dentistName", "").trim();
+            String treatment = data.optString("treatmentType", "").trim();
+            String apptDateTime = data.optString("apptDateTime", "").trim();
 
-            String patId = "PAT-" + (int)(Math.random() * 9000 + 1000);
             String apptNum = "APT-" + (System.currentTimeMillis() % 10000);
+            String patId = existingPatId;
 
             conn = DBUtil.getConnection();
             conn.setAutoCommit(false);
 
-            String pSql = "INSERT INTO patients (patient_id, name, address, contact) VALUES (?, ?, ?, ?)";
-            try (PreparedStatement psP = conn.prepareStatement(pSql)) {
-                psP.setString(1, patId);
-                psP.setString(2, patName);
-                psP.setString(3, address);
-                psP.setString(4, contact);
-                psP.executeUpdate();
+            if (patId.isEmpty()) {
+                patId = "PAT-" + (int)(Math.random() * 9000 + 1000);
+                String pSql = "INSERT INTO patients (patient_id, name, address, contact) VALUES (?, ?, ?, ?)";
+                try (PreparedStatement psP = conn.prepareStatement(pSql)) {
+                    psP.setString(1, patId);
+                    psP.setString(2, patName);
+                    psP.setString(3, address);
+                    psP.setString(4, contact);
+                    psP.executeUpdate();
+                }
             }
 
             String aSql = "INSERT INTO appointments (appointment_num, patient_id, dentist_name, treatment_type, appt_date_time, status) VALUES (?, ?, ?, ?, ?, 'Pending')";
@@ -532,7 +522,6 @@ public class StaffApiResource {
         }
     }
 
-    // 4.3 PUT - UPDATE APPOINTMENT DETAILS (Full Edit)
     @PUT
     @Path("appointments/{id}")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -569,7 +558,6 @@ public class StaffApiResource {
         }
     }
 
-    // 4.4 DELETE - REMOVE APPOINTMENT (Cascaded Safety)
     @DELETE
     @Path("appointments/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -609,7 +597,6 @@ public class StaffApiResource {
         }
     }
 
-    // 4.5 POST - UPDATE APPOINTMENT STATUS (Quick Toggle)
     @POST
     @Path("update_appointment_status")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -649,7 +636,6 @@ public class StaffApiResource {
     // 5. BILLS & INVOICING
     // =========================================================================
 
-    // 5.1 GET ALL BILLS
     @GET
     @Path("bills")
     @Produces(MediaType.APPLICATION_JSON)
@@ -677,7 +663,6 @@ public class StaffApiResource {
         }
     }
 
-    // 5.2 POST - SAVE BILL (Dual Path Support)
     @POST
     @Path("save_bill")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -729,7 +714,6 @@ public class StaffApiResource {
     // 6. AUTHENTICATION & SECURITY
     // =========================================================================
 
-    // 6.1 POST - USER LOGIN WITH TOKEN
     @POST
     @Path("login")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -767,7 +751,6 @@ public class StaffApiResource {
                 }
             }
 
-            // Fallback for staff demo login
             if (username.equalsIgnoreCase("staff") || username.equalsIgnoreCase("staff1")) {
                 if (password.equals("1234") || password.equals("admin") || password.equals("staff") || password.equals("staff123")) {
                     String authToken = "SUNRISE_TOKEN_" + UUID.randomUUID().toString() + "_" + System.currentTimeMillis();
@@ -782,6 +765,77 @@ public class StaffApiResource {
             }
 
             return addCors(Response.status(401).entity("{\"status\":\"error\",\"message\":\"Invalid username or password!\"}")).build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();
+        } finally {
+            DBUtil.closeConnection(conn);
+        }
+    }
+
+    // =========================================================================
+    // 7. USER PROFILE & PASSWORD MANAGEMENT
+    // =========================================================================
+
+    @PUT
+    @Path("users/update_profile")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response updateUserProfile(String jsonBody) {
+        Connection conn = null;
+        try {
+            JSONObject data = new JSONObject(jsonBody);
+            String rawUsername = data.optString("username", "").trim();
+            String fullName = data.optString("fullName", "").trim();
+            String currentPassword = data.optString("currentPassword", "").trim();
+            String newPassword = data.optString("newPassword", "").trim();
+
+            String username = rawUsername;
+            if (username.contains("(")) {
+                username = username.split("\\(")[0].trim();
+            }
+
+            conn = DBUtil.getConnection();
+
+            String targetUser = username;
+            String checkSql = "SELECT username, password FROM users WHERE username = ? OR full_name = ?";
+            try (PreparedStatement psCheck = conn.prepareStatement(checkSql)) {
+                psCheck.setString(1, username);
+                psCheck.setString(2, username);
+                try (ResultSet rs = psCheck.executeQuery()) {
+                    if (rs.next()) {
+                        targetUser = rs.getString("username");
+                        String dbPass = rs.getString("password");
+
+                        if (!newPassword.isEmpty()) {
+                            if (!dbPass.equals(currentPassword)) {
+                                return addCors(Response.status(400).entity("{\"status\":\"error\",\"message\":\"Current password is incorrect!\"}")).build();
+                            }
+                        }
+                    } else {
+                        targetUser = "staff";
+                    }
+                }
+            }
+
+            if (!newPassword.isEmpty()) {
+                String updateSql = "UPDATE users SET full_name = ?, password = ? WHERE username = ?";
+                try (PreparedStatement psUp = conn.prepareStatement(updateSql)) {
+                    psUp.setString(1, fullName);
+                    psUp.setString(2, newPassword);
+                    psUp.setString(3, targetUser);
+                    psUp.executeUpdate();
+                }
+            } else {
+                String updateSql = "UPDATE users SET full_name = ? WHERE username = ?";
+                try (PreparedStatement psUp = conn.prepareStatement(updateSql)) {
+                    psUp.setString(1, fullName);
+                    psUp.setString(2, targetUser);
+                    psUp.executeUpdate();
+                }
+            }
+
+            return addCors(Response.ok("{\"status\":\"success\",\"message\":\"Profile updated successfully!\"}")).build();
         } catch (Exception e) {
             e.printStackTrace();
             return addCors(Response.status(500).entity("{\"status\":\"error\",\"message\":\"" + e.getMessage() + "\"}")).build();

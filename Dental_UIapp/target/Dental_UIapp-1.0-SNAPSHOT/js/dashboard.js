@@ -954,6 +954,311 @@ function filterTable(tableId, inputId) {
     }
 }
 
+// Auto-fill Username helper
+window.autoFillUsername = function(name) {
+    const userField = document.getElementById('regDocUsername');
+    if (!userField || userField.dataset.customEdited) return;
+    
+    const clean = name.toLowerCase().replace(/^dr\.?\s*/i, '').replace(/[^a-z0-9]/g, '');
+    userField.value = clean ? `doc.${clean}` : '';
+};
+
+// Next Auto Doctor ID Generator
+function generateNextDoctorId(doctorsList) {
+    let maxNum = 0;
+    doctorsList.forEach(d => {
+        const idStr = (d.doctor_id || d.doctorId || '').toString().toUpperCase();
+        const match = idStr.match(/\d+/);
+        if (match) {
+            const num = parseInt(match[0], 10);
+            if (num > maxNum) maxNum = num;
+        }
+    });
+    return `DOC-${maxNum + 1}`;
+}
+
+// 3. Load Doctors (With Auto ID generation for new registrations)
+async function loadDoctors() {
+    const tbody = document.getElementById('docTableBody');
+    const statDoc = document.getElementById('statDocCount');
+    const docIdField = document.getElementById('regDocId');
+    const dropdowns = [
+        document.getElementById('dentistDropdown'),
+        document.getElementById('appointmentDoctor'),
+        document.getElementById('docSelect'),
+        document.querySelector('select[name="dentist"]'),
+        document.querySelector('select[name="dentistName"]')
+    ].filter(Boolean);
+
+    dropdowns.forEach(d => d.innerHTML = '<option value="">-- Select Dentist --</option>');
+
+    try {
+        const res = await apiFetch('/doctors');
+        let doctors = [];
+        if (Array.isArray(res)) {
+            doctors = res;
+        } else if (res && Array.isArray(res.data)) {
+            doctors = res.data;
+        } else if (res && Array.isArray(res.doctors)) {
+            doctors = res.doctors;
+        }
+
+        if (statDoc) statDoc.innerText = doctors.length || 0;
+        
+        // Next Doctor ID එක Input Field එකට Auto-Fill කිරීම
+        if (docIdField) {
+            docIdField.value = generateNextDoctorId(doctors);
+        }
+
+        if (tbody) tbody.innerHTML = '';
+
+        if (doctors.length === 0) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No doctors registered yet.</td></tr>';
+            return;
+        }
+
+        doctors.forEach(doc => {
+            const id = doc.doctor_id || doc.doctorId || doc.id || '-';
+            const name = doc.doctor_name || doc.doctorName || doc.name || '-';
+            const loc = doc.location || doc.branch || 'Nugegoda';
+            const tel = doc.tel_no || doc.telNo || doc.telephone || '-';
+
+            const safeName = name.replace(/'/g, "\\'");
+            const safeLoc = loc.replace(/'/g, "\\'");
+            const safeTel = tel.replace(/'/g, "\\'");
+
+            if (tbody) {
+                tbody.innerHTML += `<tr>
+                    <td><strong>${id}</strong></td>
+                    <td><strong>${name}</strong></td>
+                    <td><i class="fa-solid fa-location-dot" style="color:#888; margin-right:4px;"></i> ${loc}</td>
+                    <td><i class="fa-solid fa-phone" style="color:#888; margin-right:4px;"></i> ${tel}</td>
+                    <td style="text-align:center;">
+                        <div style="display:inline-flex; gap:8px;">
+                            <button type="button" onclick="openEditDoctorModal('${id}', '${safeName}', '${safeLoc}', '${safeTel}')" 
+                                    style="padding:6px 12px; background:#0284c7; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Edit Doctor">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </button>
+                            <button type="button" onclick="deleteDoctor('${id}', '${safeName}')" 
+                                    style="padding:6px 12px; background:#ef4444; color:#fff; border:none; border-radius:6px; font-size:12px; cursor:pointer;" title="Delete Doctor">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }
+
+            dropdowns.forEach(d => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = `${name} (${loc})`;
+                d.appendChild(opt);
+            });
+        });
+    } catch (err) {
+        console.error('Load Doctors Error:', err);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center;">Failed to load doctors.</td></tr>';
+    }
+}
+
+// 8. Submit Doctor
+async function submitDoctor() {
+    const docId = document.getElementById('regDocId')?.value.trim();
+    const docName = document.getElementById('regDocName')?.value.trim();
+    const location = document.getElementById('regDocLocation')?.value.trim() || 'Nugegoda';
+    const telNo = document.getElementById('regDocTel')?.value.trim() || '-';
+    const username = document.getElementById('regDocUsername')?.value.trim() || docId;
+    const password = document.getElementById('regDocPassword')?.value.trim() || '1234';
+
+    if (!docName || !docId) {
+        alert('Please fill in Doctor Full Name.');
+        return;
+    }
+
+    const data = {
+        doctorId: docId,
+        doctorName: docName,
+        location: location,
+        telNo: telNo,
+        username: username,
+        password: password
+    };
+
+    try {
+        const res = await apiFetch('/doctors', { method: 'POST', body: data });
+        alert(res.message || 'Doctor registered successfully!');
+        
+        // Reset form
+        document.getElementById('regDocName').value = '';
+        document.getElementById('regDocLocation').value = 'Nugegoda';
+        document.getElementById('regDocTel').value = '';
+        document.getElementById('regDocUsername').value = '';
+        document.getElementById('regDocPassword').value = '';
+
+        loadDoctors();
+    } catch (err) {
+        alert('Failed to register doctor: ' + err.message);
+    }
+}
+// 1. Component Loader
+async function loadComponents() {
+    const loggedUser = localStorage.getItem('loggedUser') || localStorage.getItem('username') || 'Staff Officer';
+    const navStaffName = document.getElementById('navStaffName');
+    if (navStaffName) {
+        navStaffName.innerText = loggedUser;
+    }
+
+    const files = [
+        'staff_dashboard/register_doctor.html',
+        'staff_dashboard/register_patient.html',
+        'staff_dashboard/add_treatment.html',
+        'staff_dashboard/new_appointment.html',
+        'staff_dashboard/appointments.html',
+        'staff_dashboard/saved_receipts.html',
+        'staff_dashboard/staff_guide.html',
+        'staff_dashboard/profile.html' // අලුතින් එක් කළ Profile Component එක
+    ];
+
+    const contentArea = document.getElementById('dynamic-content-area');
+    if (contentArea) {
+        contentArea.innerHTML = '';
+        for (const file of files) {
+            try {
+                const res = await fetch(file);
+                if (res.ok) {
+                    contentArea.innerHTML += await res.text();
+                }
+            } catch (e) {
+                console.error('Failed to load component:', file);
+            }
+        }
+    }
+
+    try {
+        const printRes = await fetch('staff_dashboard/print_receipt_template.html');
+        const printContainer = document.getElementById('print-template-container');
+        if (printContainer && printRes.ok) {
+            printContainer.innerHTML = await printRes.text();
+        }
+    } catch(e) {}
+
+    bindFormEvents();
+    fetchAllData();
+
+    setTimeout(() => {
+        switchTab('add-doctor');
+    }, 50);
+}
+
+// Populate Staff Profile Form
+function loadStaffProfileData() {
+    const username = localStorage.getItem('username') || localStorage.getItem('loggedUser') || 'staff';
+    const fullName = localStorage.getItem('fullName') || localStorage.getItem('loggedUser') || 'Saman Perera';
+    const role = localStorage.getItem('userRole') || 'Receptionist';
+
+    const uInput = document.getElementById('profUsername');
+    const nInput = document.getElementById('profFullName');
+    const titleText = document.getElementById('profDisplayTitle');
+    const badge = document.getElementById('profRoleBadge');
+
+    if (uInput) uInput.value = username;
+    if (nInput) nInput.value = fullName;
+    if (titleText) titleText.innerText = fullName;
+    if (badge) badge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Authorized ${role}`;
+}
+
+// Update switchTab function
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    
+    let target = document.getElementById(tabId);
+    let btn = document.getElementById('tab-btn-' + tabId);
+
+    if (!target && tabId === 'add-doctor') target = document.getElementById('register-doctor');
+    if (!target && tabId === 'register-doctor') target = document.getElementById('add-doctor');
+    if (!target && tabId === 'add-appointment') target = document.getElementById('new-appointment');
+    if (!target && tabId === 'new-appointment') target = document.getElementById('add-appointment');
+    if (!target && tabId === 'schedule-details') target = document.getElementById('appointments');
+    if (!target && tabId === 'appointments') target = document.getElementById('schedule-details');
+
+    if (!btn && tabId === 'add-doctor') btn = document.getElementById('tab-btn-register-doctor');
+    if (!btn && tabId === 'register-doctor') btn = document.getElementById('tab-btn-add-doctor');
+    if (!btn && tabId === 'add-appointment') btn = document.getElementById('tab-btn-new-appointment');
+    if (!btn && tabId === 'new-appointment') btn = document.getElementById('tab-btn-add-appointment');
+    if (!btn && tabId === 'schedule-details') btn = document.getElementById('tab-btn-appointments');
+    if (!btn && tabId === 'appointments') btn = document.getElementById('tab-btn-schedule-details');
+
+    if (target) target.classList.add('active');
+    if (btn) btn.classList.add('active');
+
+    if (tabId === 'add-doctor' || tabId === 'register-doctor') {
+        loadDoctors();
+    } else if (tabId === 'register-patient') {
+        loadPatients();
+    } else if (tabId === 'add-treatment') {
+        loadTreatments();
+    } else if (tabId.includes('appointment') || tabId === 'add-appointment' || tabId === 'new-appointment') {
+        loadDoctors();
+        loadTreatments();
+        loadPatients();
+    } else if (tabId === 'appointments' || tabId === 'schedule-details') {
+        loadAppointments();
+    } else if (tabId === 'saved-receipts') {
+        loadBills();
+    } else if (tabId === 'staff-profile') {
+        loadStaffProfileData();
+    }
+}
+
+// Handle Profile Update Request
+window.handleUpdateStaffProfile = async function(e) {
+    if (e) e.preventDefault();
+
+    const username = document.getElementById('profUsername').value.trim();
+    const fullName = document.getElementById('profFullName').value.trim();
+    const currentPass = document.getElementById('profCurrentPass').value.trim();
+    const newPass = document.getElementById('profNewPass').value.trim();
+
+    if (!fullName) {
+        alert('Display Name cannot be empty.');
+        return;
+    }
+
+    if (newPass && !currentPass) {
+        alert('Please enter your current password to set a new password.');
+        return;
+    }
+
+    try {
+        const res = await apiFetch('/users/update_profile', {
+            method: 'PUT',
+            body: {
+                username: username,
+                fullName: fullName,
+                currentPassword: currentPass,
+                newPassword: newPass
+            }
+        });
+
+        alert(res.message || 'Profile updated successfully!');
+        
+        localStorage.setItem('fullName', fullName);
+        localStorage.setItem('loggedUser', fullName);
+        
+        const navStaffName = document.getElementById('navStaffName');
+        if (navStaffName) {
+            navStaffName.innerText = fullName;
+        }
+
+        document.getElementById('profCurrentPass').value = '';
+        document.getElementById('profNewPass').value = '';
+        loadStaffProfileData();
+    } catch (err) {
+        alert('Failed to update profile: ' + err.message);
+    }
+};
+
 // 11. Clean Logout Handler
 function logoutStaff() {
     localStorage.removeItem('authToken');
