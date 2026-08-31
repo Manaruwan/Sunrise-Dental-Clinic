@@ -5,7 +5,7 @@ const API_ENDPOINTS = [
     'http://localhost:8080/Sunrise%20Dental%20Clinic/api'
 ];
 
-// Strict Token Auth Guard: Token එකක් හෝ Doctor session එකක් නොමැති නම් කෙලින්ම Login එකට Redirect කිරීම
+// Strict Token Auth Guard
 (function checkDoctorAuth() {
     const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
     const doctor = localStorage.getItem('doctorName') || localStorage.getItem('loggedUser');
@@ -17,7 +17,7 @@ const API_ENDPOINTS = [
     }
 })();
 
-// Browser Back Button Cache Guard: Logout වූ පසු Browser එකේ Back button එක එබූ විට නැවත ඒම වළක්වයි
+// Browser Back Button Cache Guard
 window.addEventListener('pageshow', function(event) {
     const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
     if (event.persisted || !token || !localStorage.getItem('loggedUser')) {
@@ -27,8 +27,26 @@ window.addEventListener('pageshow', function(event) {
     }
 });
 
-// Doctor Clean Logout Handler
+// Modern Logout Modal Handlers (Yes / No)
 function logoutDoctor() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    } else {
+        if (confirm("Are you sure you want to log out?")) {
+            confirmDoctorLogout();
+        }
+    }
+}
+
+function closeLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function confirmDoctorLogout() {
     localStorage.removeItem('authToken');
     sessionStorage.removeItem('authToken');
     localStorage.clear();
@@ -36,17 +54,13 @@ function logoutDoctor() {
     window.location.replace('login.html');
 }
 
-let loggedDoctorName = localStorage.getItem('doctorName') || localStorage.getItem('loggedUser') || 'Doctor';
+let loggedDoctorName = localStorage.getItem('doctorName') || localStorage.getItem('fullName') || localStorage.getItem('loggedUser') || 'Doctor';
 
-// Helper Function: Match doctor records accurately (handles "Dr.", extra spaces, and case-insensitivity)
 function isMatchingDoctor(recordDocName, currentDoc) {
     if (!recordDocName || !currentDoc) return false;
-    
     const clean = (str) => str.toString().toLowerCase().replace(/^dr\.?\s*/i, '').replace(/[^a-z0-9]/g, '').trim();
-    
     const target = clean(currentDoc);
     const incoming = clean(recordDocName);
-    
     return incoming.includes(target) || target.includes(incoming);
 }
 
@@ -55,9 +69,7 @@ async function apiFetch(endpoint, options = {}) {
     if (!opts.headers) opts.headers = {};
     
     const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-    if (token) {
-        opts.headers['Authorization'] = 'Bearer ' + token;
-    }
+    if (token) opts.headers['Authorization'] = 'Bearer ' + token;
 
     if (opts.body && typeof opts.body === 'object') {
         opts.body = JSON.stringify(opts.body);
@@ -81,13 +93,14 @@ async function apiFetch(endpoint, options = {}) {
 // 1. Dynamic Component Loader
 async function loadDoctorComponents() {
     const navNameEl = document.getElementById('docNavName');
-    if (navNameEl) navNameEl.innerText = 'Dr. ' + loggedDoctorName.replace(/^dr\.?\s*/i, '');
+    if (navNameEl) navNameEl.innerText = loggedDoctorName.startsWith('Dr.') ? loggedDoctorName : 'Dr. ' + loggedDoctorName.replace(/^dr\.?\s*/i, '');
 
     const files = [
         'doctor_dashboard/appointments.html',
         'doctor_dashboard/patient_history.html',
         'doctor_dashboard/invoices.html',
-        'doctor_dashboard/guide.html'
+        'doctor_dashboard/guide.html',
+        'doctor_dashboard/profile.html'
     ];
 
     const contentArea = document.getElementById('doctor-dynamic-content');
@@ -109,39 +122,150 @@ async function loadDoctorComponents() {
     fetchDoctorBills();
     fetchDoctorPatientHistory();
 
-    // Default පළමු Tab එක Auto Open කිරීම
     setTimeout(() => {
         switchTab('appointments-tab');
     }, 50);
 }
 
+// 2. Tab Switcher with Sidebar Support
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sidebar-btn, .tab-btn').forEach(el => el.classList.remove('active'));
 
     let target = document.getElementById(tabId);
     let btn = document.getElementById('tab-btn-' + tabId);
 
-    // Fallback ID normalization
+    const titleEl = document.getElementById('currentDocSectionTitle');
+    const subTitleEl = document.getElementById('currentDocSectionSubtitle');
+
+    // Fallback IDs normalization
     if (!target && tabId === 'appointments-tab') target = document.getElementById('my-appointments');
     if (!target && tabId === 'my-appointments') target = document.getElementById('appointments-tab');
+    if (!target && tabId === 'invoices-tab') target = document.getElementById('my-invoices');
+    if (!target && tabId === 'my-invoices') target = document.getElementById('invoices-tab');
+    if (!target && (tabId === 'guide-tab' || tabId === 'doc-guide-tab')) target = document.getElementById('doctor-guide');
+    if (!target && tabId === 'doctor-guide') target = document.getElementById('guide-tab') || document.getElementById('doc-guide-tab');
 
     if (!btn && tabId === 'appointments-tab') btn = document.getElementById('tab-btn-my-appointments');
     if (!btn && tabId === 'my-appointments') btn = document.getElementById('tab-btn-appointments-tab');
+    if (!btn && tabId === 'invoices-tab') btn = document.getElementById('tab-btn-my-invoices');
+    if (!btn && tabId === 'my-invoices') btn = document.getElementById('tab-btn-invoices-tab');
+    if (!btn && (tabId === 'guide-tab' || tabId === 'doc-guide-tab')) btn = document.getElementById('tab-btn-doctor-guide') || document.getElementById('tab-btn-guide-tab') || document.getElementById('tab-btn-doc-guide-tab');
+    if (!btn && tabId === 'doctor-guide') btn = document.getElementById('tab-btn-guide-tab');
 
     if (target) target.classList.add('active');
     if (btn) btn.classList.add('active');
 
     if (tabId === 'appointments-tab' || tabId === 'my-appointments') {
+        if (titleEl) titleEl.innerText = 'Patient Appointments';
+        if (subTitleEl) subTitleEl.innerText = 'Review assigned patients, update consultation status, and calculate billing.';
         fetchDoctorAppointments();
     } else if (tabId === 'invoices-tab' || tabId === 'my-invoices') {
+        if (titleEl) titleEl.innerText = 'Issued Receipts & Invoices';
+        if (subTitleEl) subTitleEl.innerText = 'Track all finalized clinical receipts and revenue generated by your consultations.';
         fetchDoctorBills();
     } else if (tabId === 'patient-history-tab' || tabId === 'patient-history') {
+        if (titleEl) titleEl.innerText = 'Patient Clinical History';
+        if (subTitleEl) subTitleEl.innerText = 'Access previous dental treatment records and past consultation details.';
         fetchDoctorPatientHistory();
+    } else if (tabId === 'guide-tab' || tabId === 'doc-guide-tab' || tabId === 'doctor-guide') {
+        if (titleEl) titleEl.innerText = 'Clinical User Guide';
+        if (subTitleEl) subTitleEl.innerText = 'Step-by-step workflow guide and operational instructions for medical specialists.';
+    } else if (tabId === 'doctor-profile') {
+        if (titleEl) titleEl.innerText = 'Doctor Profile & Security';
+        if (subTitleEl) subTitleEl.innerText = 'Manage your doctor credentials, display title, and account password.';
+        loadDoctorProfileData();
     }
 }
 
-// 2. Fetch Doctor Appointments (Strict Doctor-Only Filter)
+// 3. Populate Profile Data (Fixed Username Detection)
+function loadDoctorProfileData() {
+    const rawUsername = localStorage.getItem('username') || 
+                        localStorage.getItem('user') || 
+                        sessionStorage.getItem('username') || 
+                        localStorage.getItem('loggedUser') || 'doctor';
+
+    const fullName = localStorage.getItem('fullName') || 
+                     localStorage.getItem('doctorName') || 
+                     localStorage.getItem('loggedUser') || 'Dr. Specialist';
+
+    let cleanUsername = rawUsername;
+    if (cleanUsername.includes('(')) {
+        cleanUsername = cleanUsername.split('(')[0].trim();
+    }
+
+    const uInput = document.getElementById('docProfUsername');
+    const nInput = document.getElementById('docProfFullName');
+    const titleText = document.getElementById('docProfDisplayTitle');
+    const badge = document.getElementById('docProfRoleBadge');
+
+    if (uInput) uInput.value = cleanUsername;
+    if (nInput) nInput.value = fullName.replace(/^dr\.?\s*/i, '').trim();
+    if (titleText) titleText.innerText = fullName.startsWith('Dr.') ? fullName : 'Dr. ' + fullName;
+    if (badge) badge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Verified Specialist`;
+}
+
+// 4. Update Profile Handler (Direct /auth/update_profile API Call)
+window.handleUpdateDoctorProfile = async function(e) {
+    if (e) e.preventDefault();
+
+    const username = (document.getElementById('docProfUsername')?.value || localStorage.getItem('username') || localStorage.getItem('loggedUser') || '').trim();
+    const fullName = document.getElementById('docProfFullName')?.value.trim();
+    const currentPass = document.getElementById('docProfCurrentPass')?.value.trim();
+    const newPass = document.getElementById('docProfNewPass')?.value.trim();
+
+    if (!fullName) {
+        alert('Doctor Full Name cannot be empty.');
+        return;
+    }
+
+    if (newPass && !currentPass) {
+        alert('Please enter your current password to set a new password.');
+        return;
+    }
+
+    const formattedFullName = fullName.startsWith('Dr.') ? fullName : 'Dr. ' + fullName;
+
+    const payload = {
+        username: username,
+        fullName: formattedFullName,
+        currentPassword: currentPass || '',
+        newPassword: newPass || ''
+    };
+
+    try {
+        let res;
+        try {
+            res = await apiFetch('/auth/update_profile', { method: 'POST', body: payload });
+        } catch (e1) {
+            try {
+                res = await apiFetch('/update_profile', { method: 'POST', body: payload });
+            } catch (e2) {
+                res = await apiFetch('/users/update_profile', { method: 'POST', body: payload });
+            }
+        }
+
+        alert(res.message || 'Profile updated successfully!');
+        
+        localStorage.setItem('fullName', formattedFullName);
+        localStorage.setItem('doctorName', formattedFullName);
+        localStorage.setItem('loggedUser', formattedFullName);
+        loggedDoctorName = formattedFullName;
+        
+        const navNameEl = document.getElementById('docNavName');
+        if (navNameEl) navNameEl.innerText = formattedFullName;
+
+        if (document.getElementById('docProfCurrentPass')) document.getElementById('docProfCurrentPass').value = '';
+        if (document.getElementById('docProfNewPass')) document.getElementById('docProfNewPass').value = '';
+        
+        loadDoctorProfileData();
+    } catch (err) {
+        console.error('Update profile error:', err);
+        alert('Failed to update profile: ' + (err.message || 'Invalid credentials or server connection error.'));
+    }
+};
+
+// 5. Fetch Doctor Appointments (Done-only calculate button)
 async function fetchDoctorAppointments() {
     try {
         const list = await apiFetch('/all_appointments');
@@ -150,7 +274,6 @@ async function fetchDoctorAppointments() {
 
         tbody.innerHTML = '';
 
-        // Filter appointments belonging ONLY to the logged doctor
         const myAppts = (Array.isArray(list) ? list : []).filter(a => {
             const doc = a.dentist_name || a.dentistName || '';
             return isMatchingDoctor(doc, loggedDoctorName);
@@ -175,7 +298,7 @@ async function fetchDoctorAppointments() {
             const pName = a.patient_name || a.name || 'Patient';
             const treatment = a.treatment_type || '-';
             const dateTime = a.appt_date_time || '-';
-            const st = a.status || 'Pending';
+            const st = (a.status || 'Pending').trim();
 
             if (st.toLowerCase() === 'pending') pendingCount++;
             if (st.toLowerCase() === 'completed' || st.toLowerCase() === 'done') completedCount++;
@@ -193,6 +316,27 @@ async function fetchDoctorAppointments() {
             const safePName = pName.replace(/'/g, "\\'");
             const safeTreat = treatment.replace(/'/g, "\\'");
 
+            let actionHtml = '';
+            if (st.toLowerCase() === 'done') {
+                actionHtml = `
+                    <button class="btn-calc" onclick="calculateBillViaAPI('${apptNo}', '${safePName}', '${safeTreat}')">
+                        <i class="fa-solid fa-calculator"></i> Calculate
+                    </button>
+                `;
+            } else if (st.toLowerCase() === 'completed') {
+                actionHtml = `
+                    <span style="font-size: 12px; color: #16a34a; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-circle-check"></i> Invoiced
+                    </span>
+                `;
+            } else {
+                actionHtml = `
+                    <span style="font-size: 12px; color: #94a3b8; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-lock" style="font-size: 11px;"></i> Mark Done First
+                    </span>
+                `;
+            }
+
             tbody.innerHTML += `
                 <tr>
                     <td><strong>${apptNo}</strong></td>
@@ -204,17 +348,15 @@ async function fetchDoctorAppointments() {
                     <td>
                         <div style="display:flex; gap:6px;">
                             <select id="statusSelect_${apptNo}" class="select-status">
-                                <option value="Pending" ${st==='Pending'?'selected':''}>Pending</option>
-                                <option value="Done" ${st==='Done'?'selected':''}>Done</option>
-                                <option value="Completed" ${st==='Completed'?'selected':''}>Completed</option>
+                                <option value="Pending" ${st.toLowerCase() === 'pending' ? 'selected' : ''}>Pending</option>
+                                <option value="Done" ${st.toLowerCase() === 'done' ? 'selected' : ''}>Done</option>
+                                <option value="Completed" ${st.toLowerCase() === 'completed' ? 'selected' : ''}>Completed</option>
                             </select>
                             <button class="btn-update" onclick="updateAppointmentStatus('${apptNo}')">Save</button>
                         </div>
                     </td>
-                    <td>
-                        <button class="btn-calc" onclick="calculateBillViaAPI('${apptNo}', '${safePName}', '${safeTreat}')">
-                            <i class="fa-solid fa-calculator"></i> Calculate
-                        </button>
+                    <td style="text-align:center;">
+                        ${actionHtml}
                     </td>
                 </tr>`;
         });
@@ -232,34 +374,25 @@ async function fetchDoctorAppointments() {
     }
 }
 
-// 3. Update Appointment Status in Database
+// 6. Update Status
 window.updateAppointmentStatus = async function(apptNo) {
     const selectEl = document.getElementById('statusSelect_' + apptNo);
-    if (!selectEl) {
-        alert('Status dropdown not found for ' + apptNo);
-        return;
-    }
-
+    if (!selectEl) return;
     const newStatus = selectEl.value;
 
     try {
-        const res = await apiFetch('/update_appointment_status', {
+        await apiFetch('/update_appointment_status', {
             method: 'POST',
-            body: {
-                appointmentNumber: apptNo,
-                status: newStatus
-            }
+            body: { appointmentNumber: apptNo, status: newStatus }
         });
-
-        alert(`Appointment ${apptNo} status successfully updated to "${newStatus}"!`);
+        alert(`Appointment ${apptNo} status updated to "${newStatus}"!`);
         fetchDoctorAppointments();
     } catch (err) {
-        console.error('Update status error:', err);
-        alert('Failed to update status in Database: ' + err.message);
+        alert('Failed to update status: ' + err.message);
     }
 };
 
-// 4. Fetch Issued Bills (Filtered strictly by Assigned Doctor)
+// 7. Fetch Issued Bills
 async function fetchDoctorBills() {
     try {
         const [billsList, apptsList] = await Promise.all([
@@ -322,15 +455,12 @@ async function fetchDoctorBills() {
         if (statRev) {
             statRev.innerText = totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
-
     } catch (e) {
         console.error('Failed to load bills:', e);
-        const tbody = document.getElementById('docBillBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Failed to load invoices.</td></tr>';
     }
 }
 
-// 5. Live Bill Calculation
+// 8. Live Calculation
 window.calculateBillViaAPI = async function(apptNum, pName, treatment) {
     try {
         let fee = 3000.00;
@@ -377,7 +507,7 @@ window.calculateBillViaAPI = async function(apptNum, pName, treatment) {
     }
 };
 
-// 6. Save Bill to Database
+// 9. Save Bill
 window.handleSaveBill = async function(e) {
     if (e) e.preventDefault();
 
@@ -403,26 +533,32 @@ window.handleSaveBill = async function(e) {
     };
 
     try {
-        let res;
         try {
-            res = await apiFetch('/save_bill', { method: 'POST', body: payload });
+            await apiFetch('/save_bill', { method: 'POST', body: payload });
         } catch (err1) {
-            res = await apiFetch('/bills', { method: 'POST', body: payload });
+            await apiFetch('/bills', { method: 'POST', body: payload });
         }
+
+        try {
+            await apiFetch('/update_appointment_status', {
+                method: 'POST',
+                body: { appointmentNumber: apptNum, status: 'Completed' }
+            });
+        } catch (ignored) {}
 
         alert('Invoice Issued & Saved to Database Successfully!');
         const section = document.getElementById('invoiceSection');
         if (section) section.style.display = 'none';
 
+        fetchDoctorAppointments();
         fetchDoctorBills();
         switchTab('invoices-tab');
     } catch (err) {
-        console.error('Save bill error:', err);
         alert('Failed to save invoice: ' + err.message);
     }
 };
 
-// 7. Fetch Patient History (Strict Doctor-Only Filter)
+// 10. Patient History
 async function fetchDoctorPatientHistory() {
     try {
         const list = await apiFetch('/all_appointments');
@@ -474,12 +610,10 @@ async function fetchDoctorPatientHistory() {
         });
     } catch (err) {
         console.error('Failed to load patient history:', err);
-        const tbody = document.getElementById('patientHistoryBody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="color:red; text-align:center;">Failed to load patient history.</td></tr>';
     }
 }
 
-// 8. Table Search Filter
+// 11. Table Search Filter
 function filterTable(tableId, inputId) {
     const input = document.getElementById(inputId);
     if (!input) return;

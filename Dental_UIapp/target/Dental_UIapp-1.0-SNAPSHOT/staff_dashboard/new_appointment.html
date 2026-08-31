@@ -1,60 +1,79 @@
-<div id="add-appointment" class="tab-content">
-    <div class="card-header">
-        <div class="card-title">
-            <i class="fa-solid fa-calendar-plus"></i> Register Patient Appointment
+<div class="tab-content" id="new-appointment">
+    <div class="card">
+        
+        <!-- Card Header -->
+        <div class="card-header">
+            <h3>
+                <i class="fa-solid fa-calendar-plus" style="color: var(--primary);"></i> Register Patient Appointment
+            </h3>
+            <span class="badge badge-done" style="font-size: 12px;">
+                <i class="fa-solid fa-clock"></i> Live Scheduling
+            </span>
         </div>
-    </div>
 
-    <form id="appointmentForm" onsubmit="event.preventDefault(); submitAppointment();">
-        <div class="form-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 15px;">
+        <form onsubmit="submitAppointment(event)">
             
-            <!-- Select from Registered Patients -->
-            <div class="form-group" style="grid-column: 1 / -1;">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">
-                    <i class="fa-solid fa-user-check" style="color:var(--primary);"></i> Select Registered Patient (Auto-Fills Details):
-                </label>
-                <select id="patientSelectDropdown" onchange="onPatientSelected(this.value)">
-                    <option value="">-- Choose Existing Patient --</option>
-                </select>
+            <!-- Quick Patient Auto-Fill Selector -->
+            <div style="background: #f8fafc; border: 1.5px solid var(--border); border-radius: var(--radius-md); padding: 18px 20px; margin-bottom: 24px;">
+                <div class="input-group">
+                    <label style="font-size: 13.5px; font-weight: 800; color: var(--secondary); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-check" style="color: var(--primary);"></i> Select Registered Patient (Auto-Fills Details):
+                    </label>
+                    <select id="patientSelectDropdown" onchange="onPatientSelected(this.value)" style="margin-top: 4px; font-weight: 600; background: #ffffff;">
+                        <option value="">-- Choose Existing Patient --</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="form-group">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">Patient Full Name *</label>
-                <input type="text" id="apptPatientName" placeholder="Enter Full Name" required>
+            <input type="hidden" id="selectedPatientId" name="patientId">
+
+            <!-- Appointment Form Grid -->
+            <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px;">
+                
+                <div class="input-group">
+                    <label>Patient Full Name *</label>
+                    <input type="text" id="apptPatientName" placeholder="Enter Full Name" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Address</label>
+                    <input type="text" id="apptAddress" placeholder="Enter Resident Address">
+                </div>
+
+                <div class="input-group">
+                    <label>Contact Phone Number (10 Digits) *</label>
+                    <input type="tel" id="apptContact" placeholder="0771234567" pattern="[0-9]{10}" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Assigned Dentist *</label>
+                    <select id="dentistDropdown" required>
+                        <option value="">-- Select Dentist --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Treatment Type *</label>
+                    <select id="treatmentDropdown" required>
+                        <option value="">-- Select Treatment --</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Appointment Schedule Date & Time *</label>
+                    <input type="datetime-local" id="apptDateTime" required>
+                </div>
+
             </div>
 
-            <div class="form-group">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">Address</label>
-                <input type="text" id="apptAddress" placeholder="Enter Resident Address">
+            <!-- Submit Action -->
+            <div style="display: flex; justify-content: flex-start; margin-top: 10px;">
+                <button type="submit" class="btn-submit">
+                    <i class="fa-solid fa-calendar-check"></i> Save & Confirm Appointment
+                </button>
             </div>
 
-            <div class="form-group">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">Contact Phone Number (10 Digits) *</label>
-                <input type="text" id="apptContact" placeholder="0771234567" required>
-            </div>
+        </form>
 
-            <div class="form-group">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">Assigned Dentist *</label>
-                <select id="dentistDropdown" required>
-                    <option value="">-- Select Dentist --</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">Treatment Type *</label>
-                <select id="treatmentDropdown" required>
-                    <option value="">-- Select Treatment --</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label style="font-weight: 600; color: var(--secondary); margin-bottom: 5px; display: block;">Appointment Schedule Date & Time *</label>
-                <input type="datetime-local" id="apptDateTime" required>
-            </div>
-        </div>
-
-        <button type="submit" class="btn-submit" style="margin-top: 20px;">
-            <i class="fa-solid fa-calendar-check"></i> Save & Confirm Appointment
-        </button>
-    </form>
+    </div>
 </div>

@@ -1,0 +1,64 @@
+<div class="tab-content" id="doctor-profile">
+    <div class="card" style="max-width: 850px; margin: 0 auto; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 30px; box-shadow: var(--shadow-md);">
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 17px; font-weight: 800; color: var(--secondary); display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-user-doctor" style="color: var(--primary);"></i> Doctor Profile & Security Settings
+            </h3>
+            <span id="docProfRoleBadge" class="badge badge-done" style="font-size: 12.5px;">
+                <i class="fa-solid fa-shield-halved"></i> Verified Specialist
+            </span>
+        </div>
+
+        <div style="display: flex; gap: 24px; align-items: center; margin-bottom: 25px; padding-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap;">
+            <div style="width: 75px; height: 75px; background: var(--primary-light); color: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.2);">
+                <i class="fa-solid fa-stethoscope"></i>
+            </div>
+            <div>
+                <h4 id="docProfDisplayTitle" style="font-size: 18px; font-weight: 800; color: var(--secondary); margin-bottom: 4px;">Dr. Specialist</h4>
+                <p style="font-size: 13px; color: var(--text-muted);">
+                    <i class="fa-solid fa-circle-check" style="color: #10b981; margin-right: 4px;"></i> Dental Specialist &bull; Sunrise Dental Clinic
+                </p>
+            </div>
+        </div>
+
+        <form onsubmit="handleUpdateDoctorProfile(event)">
+            <h4 style="font-size: 14.5px; font-weight: 700; color: var(--secondary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-id-card" style="color: var(--primary);"></i> Professional Information
+            </h4>
+            
+            <div class="form-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 20px;">
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #334155;">System Username / Doctor ID (Read-Only)</label>
+                    <input type="text" id="docProfUsername" readonly style="padding: 11px 14px; background-color: #f1f5f9; cursor: not-allowed; font-weight: 700; color: var(--text-muted); border: 1.5px solid var(--border); border-radius: 8px;">
+                </div>
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #334155;">Doctor Full Name *</label>
+                    <input type="text" id="docProfFullName" placeholder="e.g. Dr. Kasun Perera" required style="padding: 11px 14px; background: #f8fafc; border: 1.5px solid var(--border); border-radius: 8px;">
+                </div>
+            </div>
+
+            <div style="margin: 25px 0 20px 0; border-top: 1px dashed var(--border);"></div>
+
+            <h4 style="font-size: 14.5px; font-weight: 700; color: var(--secondary); margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-lock" style="color: #ea580c;"></i> Security Credentials
+            </h4>
+
+            <div class="form-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 25px;">
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #334155;">Current Password</label>
+                    <input type="password" id="docProfCurrentPass" placeholder="Enter current password" style="padding: 11px 14px; background: #f8fafc; border: 1.5px solid var(--border); border-radius: 8px;">
+                </div>
+                <div class="input-group" style="display: flex; flex-direction: column; gap: 6px;">
+                    <label style="font-size: 13px; font-weight: 700; color: #334155;">New Password (Optional)</label>
+                    <input type="password" id="docProfNewPass" placeholder="Enter new password" style="padding: 11px 14px; background: #f8fafc; border: 1.5px solid var(--border); border-radius: 8px;">
+                </div>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 12px;">
+                <button type="submit" class="btn-submit" style="padding: 12px 24px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; font-weight: 700; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Profile Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

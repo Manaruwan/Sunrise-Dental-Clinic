@@ -1,18 +1,53 @@
-<div id="doc-guide-tab" class="tab-content">
-    <h3 style="margin-bottom: 22px; color: var(--secondary); font-size: 18px; font-weight: 800;">
-        <i class="fa-solid fa-circle-info" style="color:var(--primary); margin-right:6px;"></i> Doctor Portal Operations Guide
-    </h3>
-    
-    <div class="help-box">
-        <h4><i class="fa-solid fa-1"></i> My Appointments View</h4>
-        <p>This table displays patient appointments assigned to you. You can change the appointment status dynamically to Pending, Done, or Completed.</p>
-    </div>
-    <div class="help-box">
-        <h4><i class="fa-solid fa-2"></i> Calculating Patient Bill via REST API</h4>
-        <p>Click the 'Calculate' button on any appointment. The system connects to the REST Service to fetch treatment pricing and totals.</p>
-    </div>
-    <div class="help-box">
-        <h4><i class="fa-solid fa-3"></i> Issuing Invoices</h4>
-        <p>Verify the calculated amounts and click 'Issue & Save Invoice Receipt' to finalize billing.</p>
+<div class="tab-content" id="doctor-guide">
+    <div class="card" style="max-width: 900px; margin: 0 auto; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border); padding: 30px; box-shadow: var(--shadow-md);">
+        
+        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
+            <h3 style="font-size: 17px; font-weight: 800; color: var(--secondary); display: flex; align-items: center; gap: 10px;">
+                <i class="fa-solid fa-book-medical" style="color: var(--primary);"></i> Doctor Portal Clinical User Guide
+            </h3>
+            <span class="badge badge-done" style="font-size: 12px;">
+                <i class="fa-solid fa-circle-info"></i> Instructions
+            </span>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+            
+            <div class="help-box" style="background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid var(--primary); border-radius: var(--radius-md); padding: 18px 22px;">
+                <h4 style="font-size: 15px; font-weight: 800; color: var(--secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calendar-check" style="color: var(--primary);"></i> 1. Managing Assigned Appointments
+                </h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+                    All appointments scheduled specifically for you by the reception staff appear in the <strong>My Appointments</strong> tab. Review the patient ID, scheduled date & time, and required procedure before starting the consultation.
+                </p>
+            </div>
+
+            <div class="help-box" style="background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid #10b981; border-radius: var(--radius-md); padding: 18px 22px;">
+                <h4 style="font-size: 15px; font-weight: 800; color: var(--secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-calculator" style="color: #10b981;"></i> 2. Treatment Completion & Bill Calculation
+                </h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+                    Once the dental treatment is finished, change the status dropdown to <strong>"Done"</strong> and click <strong>"Save"</strong>. The <strong>"Calculate"</strong> button will become active. Clicking it automatically calculates procedure fees and finalizes the patient invoice.
+                </p>
+            </div>
+
+            <div class="help-box" style="background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid #9333ea; border-radius: var(--radius-md); padding: 18px 22px;">
+                <h4 style="font-size: 15px; font-weight: 800; color: var(--secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-receipt" style="color: #9333ea;"></i> 3. Issued Invoices & Revenue Tracking
+                </h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+                    Track all finalized receipts and review your total generated clinic revenue in the <strong>My Issued Invoices</strong> tab with full breakdown details.
+                </p>
+            </div>
+
+            <div class="help-box" style="background: #f8fafc; border: 1px solid var(--border); border-left: 4px solid #ea580c; border-radius: var(--radius-md); padding: 18px 22px;">
+                <h4 style="font-size: 15px; font-weight: 800; color: var(--secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-clock-rotate-left" style="color: #ea580c;"></i> 4. Patient Treatment History
+                </h4>
+                <p style="font-size: 13.5px; color: var(--text-muted); line-height: 1.6;">
+                    Access historical records of previous clinical treatments and procedures performed under your care using the <strong>Patient History</strong> tab.
+                </p>
+            </div>
+
+        </div>
     </div>
 </div>
