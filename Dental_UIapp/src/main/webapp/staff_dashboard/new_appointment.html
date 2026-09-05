@@ -27,8 +27,8 @@
 
             <input type="hidden" id="selectedPatientId" name="patientId">
 
-            <!-- Appointment Form Grid -->
-            <div class="form-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 25px;">
+            <!-- Appointment Form Grid (මෙමගින් Inputs ලස්සනට පෙළගස්වයි) -->
+            <div class="form-grid">
                 
                 <div class="input-group">
                     <label>Patient Full Name *</label>
@@ -46,17 +46,21 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Assigned Dentist *</label>
-                    <select id="dentistDropdown" required>
-                        <option value="">-- Select Dentist --</option>
+                    <label>Treatment Type *</label>
+                    <select id="treatmentDropdown" onchange="filterDoctorsByTreatment(this.value)" required>
+                        <option value="">-- Select Treatment --</option>
                     </select>
                 </div>
 
                 <div class="input-group">
-                    <label>Treatment Type *</label>
-                    <select id="treatmentDropdown" required>
-                        <option value="">-- Select Treatment --</option>
+                    <label>Assigned Dentist *</label>
+                    <select id="dentistDropdown" onchange="onDoctorScheduleSelect(this.value)" required>
+                        <option value="">-- Select Dentist --</option>
                     </select>
+                    <!-- Doctor Live Schedule Display Card -->
+                    <div id="doctorAvailabilityBadge" style="display: none; margin-top: 8px; padding: 8px 12px; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 8px; font-size: 12px; color: #0369a1; font-weight: 700;">
+                        <i class="fa-solid fa-business-time"></i> <span id="docAvailText">Schedule: Mon - Sat (09:00 AM - 05:00 PM)</span>
+                    </div>
                 </div>
 
                 <div class="input-group">
@@ -67,7 +71,7 @@
             </div>
 
             <!-- Submit Action -->
-            <div style="display: flex; justify-content: flex-start; margin-top: 10px;">
+            <div style="display: flex; justify-content: flex-start; margin-top: 15px;">
                 <button type="submit" class="btn-submit">
                     <i class="fa-solid fa-calendar-check"></i> Save & Confirm Appointment
                 </button>

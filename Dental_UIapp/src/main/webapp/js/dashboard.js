@@ -27,6 +27,7 @@ const API_ENDPOINTS = [
 ];
 
 let allPatientsCache = [];
+let allDoctorsCache = [];
 
 async function apiFetch(endpoint, options = {}) {
     let finalOptions = { ...options };
@@ -51,14 +52,16 @@ async function apiFetch(endpoint, options = {}) {
             if (res.ok) {
                 return await res.json();
             }
+            const errText = await res.text();
+            lastError = new Error(`HTTP ${res.status}: ${errText}`);
         } catch (e) {
             lastError = e;
         }
     }
-    throw new Error(lastError ? lastError.message : 'Failed to connect to API');
+    throw lastError || new Error('Failed to connect to API');
 }
 
-// 1. Helper: Block Past Dates and Times in DateTime pickers
+// 1. Helper: Block Past Dates
 function setMinAppointmentDateTime() {
     const dtInput = document.getElementById('apptDateTime');
     const editDtInput = document.getElementById('editApptDateTime');
@@ -72,12 +75,8 @@ function setMinAppointmentDateTime() {
     
     const minDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
     
-    if (dtInput) {
-        dtInput.min = minDateTime;
-    }
-    if (editDtInput) {
-        editDtInput.min = minDateTime;
-    }
+    if (dtInput) dtInput.min = minDateTime;
+    if (editDtInput) editDtInput.min = minDateTime;
 }
 
 // 2. Component Loader
@@ -126,7 +125,6 @@ async function loadComponents() {
     fetchAllData();
     setMinAppointmentDateTime();
 
-    // Default පළමු Tab එක Open කිරීම
     setTimeout(() => {
         switchTab('add-doctor');
     }, 50);
@@ -145,7 +143,7 @@ function bindFormEvents() {
         const btnText = targetBtn.innerText.trim();
 
         if (targetBtn.type === 'submit' || targetBtn.classList.contains('btn-submit') || targetBtn.classList.contains('btn-register-doc')) {
-            if (btnText.includes('Register Doctor') || btnText.includes('Register Doctor & Account')) {
+            if (btnText.includes('Register Doctor') || btnText.includes('Register Doctor & Account') || btnText.includes('Register Doctor & Set Schedule')) {
                 e.preventDefault();
                 submitDoctor();
             } else if (btnText.includes('Register Patient')) {
@@ -181,7 +179,6 @@ function switchTab(tabId) {
     const titleEl = document.getElementById('currentStaffSectionTitle');
     const subTitleEl = document.getElementById('currentStaffSectionSubtitle');
 
-    // Fallbacks for mismatched IDs
     if (!target && tabId === 'add-doctor') target = document.getElementById('register-doctor');
     if (!target && tabId === 'register-doctor') target = document.getElementById('add-doctor');
     if (!target && tabId === 'add-appointment') target = document.getElementById('new-appointment');
@@ -265,6 +262,31 @@ function generateNextDoctorId(doctorsList) {
     return `DOC-${maxNum + 1}`;
 }
 
+function renderSidebarDoctorAvailability(doctorsList) {
+    const scheduleBody = document.getElementById('sidebarDoctorScheduleBody');
+    if (!scheduleBody) return;
+
+    scheduleBody.innerHTML = '';
+    if (!doctorsList.length) {
+        scheduleBody.innerHTML = '<tr><td colspan="3">No doctors registered</td></tr>';
+        return;
+    }
+
+    doctorsList.forEach(doc => {
+        const row = document.createElement('tr');
+        const nameCell = document.createElement('td');
+        const daysCell = document.createElement('td');
+        const timeCell = document.createElement('td');
+
+        nameCell.textContent = doc.doctor_name || doc.doctorName || doc.name || '-';
+        daysCell.textContent = doc.available_days || doc.availableDays || 'Mon - Sat';
+        timeCell.textContent = doc.available_time || doc.availableTime || '09:00 AM - 05:00 PM';
+
+        row.append(nameCell, daysCell, timeCell);
+        scheduleBody.appendChild(row);
+    });
+}
+
 async function loadDoctors() {
     const tbody = document.getElementById('docTableBody');
     const statDoc = document.getElementById('statDocCount');
@@ -281,22 +303,25 @@ async function loadDoctors() {
 
     try {
         const res = await apiFetch('/doctors');
-        let doctors = Array.isArray(res) ? res : (res.data || res.doctors || []);
+        allDoctorsCache = Array.isArray(res) ? res : [];
+        renderSidebarDoctorAvailability(allDoctorsCache);
 
-        if (statDoc) statDoc.innerText = doctors.length || 0;
-        if (docIdField) docIdField.value = generateNextDoctorId(doctors);
+        if (statDoc) statDoc.innerText = allDoctorsCache.length || 0;
+        if (docIdField) docIdField.value = generateNextDoctorId(allDoctorsCache);
         if (tbody) tbody.innerHTML = '';
 
-        if (doctors.length === 0) {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">No doctors registered yet.</td></tr>';
+        if (allDoctorsCache.length === 0) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">No doctors registered yet.</td></tr>';
             return;
         }
 
-        doctors.forEach(doc => {
+        allDoctorsCache.forEach(doc => {
             const id = doc.doctor_id || doc.doctorId || doc.id || '-';
             const name = doc.doctor_name || doc.doctorName || doc.name || '-';
             const loc = doc.location || doc.branch || 'Nugegoda';
             const tel = doc.tel_no || doc.telNo || doc.telephone || '-';
+            const days = doc.available_days || doc.availableDays || 'Mon - Sat';
+            const time = doc.available_time || doc.availableTime || '09:00 AM - 05:00 PM';
 
             const safeName = name.replace(/'/g, "\\'");
             const safeLoc = loc.replace(/'/g, "\\'");
@@ -306,7 +331,15 @@ async function loadDoctors() {
                 tbody.innerHTML += `<tr>
                     <td><strong>${id}</strong></td>
                     <td><strong>${name}</strong></td>
-                    <td><i class="fa-solid fa-location-dot" style="color:#888; margin-right:4px;"></i> ${loc}</td>
+                    <td><i class="fa-solid fa-location-dot" style="color:#0284c7; margin-right:4px;"></i> ${loc}</td>
+                    <td>
+                        <span class="badge badge-done" style="font-size:11px; margin-bottom:2px; display:inline-flex;">
+                            <i class="fa-regular fa-calendar"></i> ${days}
+                        </span><br>
+                        <span style="font-size:11.5px; color:var(--text-muted); font-weight:600;">
+                            <i class="fa-regular fa-clock"></i> ${time}
+                        </span>
+                    </td>
                     <td><i class="fa-solid fa-phone" style="color:#888; margin-right:4px;"></i> ${tel}</td>
                     <td style="text-align:center;">
                         <div style="display:inline-flex; gap:8px;">
@@ -326,15 +359,35 @@ async function loadDoctors() {
             dropdowns.forEach(d => {
                 const opt = document.createElement('option');
                 opt.value = name;
-                opt.textContent = `${name} (${loc})`;
+                opt.textContent = `${name} (${loc}) - [${days} | ${time}]`;
                 d.appendChild(opt);
             });
         });
     } catch (err) {
         console.error('Load Doctors Error:', err);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="color:red; text-align:center;">Failed to load doctors.</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="color:red; text-align:center;">Failed to load doctors.</td></tr>';
     }
 }
+
+// 5.5 Appointment schedule preview
+window.onDoctorScheduleSelect = function(docName) {
+    const badge = document.getElementById('doctorAvailabilityBadge');
+    const text = document.getElementById('docAvailText');
+    if (!badge || !text) return;
+
+    if (!docName) {
+        badge.style.display = 'none';
+        return;
+    }
+
+    const doc = allDoctorsCache.find(d => (d.doctor_name || d.doctorName) === docName);
+    if (doc) {
+        const days = doc.available_days || doc.availableDays || 'Mon - Sat';
+        const time = doc.available_time || doc.availableTime || '09:00 AM - 05:00 PM';
+        text.innerText = `Available: ${days} (${time})`;
+        badge.style.display = 'block';
+    }
+};
 
 window.openEditDoctorModal = function(id, name, location, tel) {
     const modal = document.getElementById('editDoctorModal');
@@ -392,6 +445,8 @@ async function submitDoctor() {
     const docName = document.getElementById('regDocName')?.value.trim();
     const location = document.getElementById('regDocLocation')?.value.trim() || 'Nugegoda';
     const telNo = document.getElementById('regDocTel')?.value.trim() || '-';
+    const days = document.getElementById('regDocDays')?.value.trim() || 'Mon - Sat';
+    const time = document.getElementById('regDocTime')?.value.trim() || '09:00 AM - 05:00 PM';
     const username = document.getElementById('regDocUsername')?.value.trim() || docId;
     const password = document.getElementById('regDocPassword')?.value.trim() || '1234';
 
@@ -405,17 +460,21 @@ async function submitDoctor() {
         doctorName: docName,
         location: location,
         telNo: telNo,
+        availableDays: days,
+        availableTime: time,
         username: username,
         password: password
     };
 
     try {
         const res = await apiFetch('/doctors', { method: 'POST', body: data });
-        alert(res.message || 'Doctor registered successfully!');
+        alert(res.message || 'Doctor and schedule registered successfully!');
         
         document.getElementById('regDocName').value = '';
         document.getElementById('regDocLocation').value = 'Nugegoda';
         document.getElementById('regDocTel').value = '';
+        if(document.getElementById('regDocDays')) document.getElementById('regDocDays').value = 'Mon - Sat';
+        if(document.getElementById('regDocTime')) document.getElementById('regDocTime').value = '09:00 AM - 05:00 PM';
         document.getElementById('regDocUsername').value = '';
         document.getElementById('regDocPassword').value = '';
 
@@ -1054,6 +1113,7 @@ function loadStaffProfileData() {
     if (badge) badge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Authorized ${role.toUpperCase()}`;
 }
 
+// --- FULLY FIXED: Staff Profile Update Function hitting /auth/update_profile ---
 window.handleUpdateStaffProfile = async function(e) {
     if (e) e.preventDefault();
 
@@ -1072,16 +1132,25 @@ window.handleUpdateStaffProfile = async function(e) {
         return;
     }
 
+    const payload = {
+        username: username,
+        fullName: fullName,
+        currentPassword: currentPass || '',
+        newPassword: newPass || ''
+    };
+
     try {
-        const res = await apiFetch('/users/update_profile', {
-            method: 'PUT',
-            body: {
-                username: username,
-                fullName: fullName,
-                currentPassword: currentPass,
-                newPassword: newPass
+        let res;
+        try {
+            // First try the confirmed /auth endpoint
+            res = await apiFetch('/auth/update_profile', { method: 'POST', body: payload });
+        } catch (err1) {
+            try {
+                res = await apiFetch('/update_profile', { method: 'POST', body: payload });
+            } catch (err2) {
+                res = await apiFetch('/users/update_profile', { method: 'POST', body: payload });
             }
-        });
+        }
 
         alert(res.message || 'Profile updated successfully!');
         
@@ -1099,7 +1168,7 @@ window.handleUpdateStaffProfile = async function(e) {
         loadStaffProfileData();
     } catch (err) {
         console.error('Update profile error:', err);
-        alert('Failed to update profile: ' + err.message);
+        alert('Failed to update profile: ' + (err.message || 'Invalid credentials or connection error.'));
     }
 };
 

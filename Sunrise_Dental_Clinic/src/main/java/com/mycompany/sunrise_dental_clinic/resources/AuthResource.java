@@ -1,19 +1,23 @@
 package com.mycompany.sunrise_dental_clinic.resources;
 
-import jakarta.ws.rs.*;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 @Path("/auth")
 public class AuthResource {
 
     private Connection getConnection() throws Exception {
         Class.forName("com.mysql.cj.jdbc.Driver");
-        return DriverManager.getConnection("jdbc:mysql://localhost:3306/dental_db", "root", "");
+        return DriverManager.getConnection("jdbc:mysql://localhost:3307/sunrise_dental?useSSL=false&allowPublicKeyRetrieval=true", "root", "");
     }
 
     public static class LoginRequest {
@@ -26,9 +30,10 @@ public class AuthResource {
         public String fullName;
         public String currentPassword;
         public String newPassword;
+        public String availableDays;
+        public String availableTime;
     }
 
-    // 1. Login Endpoint (/auth/login)
     @POST
     @Path("/login")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -68,7 +73,6 @@ public class AuthResource {
         }
     }
 
-    // 2. Profile Update Endpoint (/auth/update_profile)
     @POST
     @Path("/update_profile")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -76,14 +80,13 @@ public class AuthResource {
     public Response updateProfile(ProfileDto req) {
         if (req == null || req.username == null || req.username.trim().isEmpty()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("{\"status\":\"error\",\"message\":\"Username or Name is required\"}").build();
+                    .entity("{\"status\":\"error\",\"message\":\"Username is required\"}").build();
         }
 
         try (Connection conn = getConnection()) {
             String targetUser = req.username.trim();
             String cleanTarget = targetUser.replaceAll("(?i)^dr\\.?\\s*", "").trim();
 
-            // 1. Password Verification (New Password එකක් දමන විට පමණක්)
             if (req.newPassword != null && !req.newPassword.trim().isEmpty()) {
                 String verifySql = "SELECT password FROM users WHERE username = ? OR full_name = ? OR full_name = ?";
                 try (PreparedStatement vStmt = conn.prepareStatement(verifySql)) {
@@ -102,7 +105,6 @@ public class AuthResource {
                 }
             }
 
-            // 2. Update Users Table
             StringBuilder userSql = new StringBuilder("UPDATE users SET full_name = ?");
             if (req.newPassword != null && !req.newPassword.trim().isEmpty()) {
                 userSql.append(", password = ?");
@@ -121,14 +123,15 @@ public class AuthResource {
                 uStmt.executeUpdate();
             }
 
-            // 3. Update Doctors Table
             try {
-                String docSql = "UPDATE doctors SET doctor_name = ? WHERE doctor_name = ? OR doctor_name = ? OR username = ?";
+                String docSql = "UPDATE doctors SET doctor_name = ?, available_days = ?, available_time = ? WHERE doctor_name = ? OR doctor_name = ? OR username = ?";
                 try (PreparedStatement dStmt = conn.prepareStatement(docSql)) {
                     dStmt.setString(1, req.fullName != null ? req.fullName.trim() : targetUser);
-                    dStmt.setString(2, targetUser);
-                    dStmt.setString(3, cleanTarget);
+                    dStmt.setString(2, req.availableDays != null && !req.availableDays.isEmpty() ? req.availableDays : "Mon - Sat");
+                    dStmt.setString(3, req.availableTime != null && !req.availableTime.isEmpty() ? req.availableTime : "09:00 AM - 05:00 PM");
                     dStmt.setString(4, targetUser);
+                    dStmt.setString(5, cleanTarget);
+                    dStmt.setString(6, targetUser);
                     dStmt.executeUpdate();
                 }
             } catch (Exception ignored) {}

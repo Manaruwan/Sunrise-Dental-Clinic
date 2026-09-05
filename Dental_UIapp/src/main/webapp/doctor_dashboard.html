@@ -50,6 +50,25 @@
                 </button>
             </nav>
 
+            <div class="doctor-availability-card" aria-label="Doctor availability">
+                <div class="availability-heading">
+                    <i class="fa-solid fa-clock"></i>
+                    <span>My Availability</span>
+                </div>
+                <div class="availability-row">
+                    <span>Days</span>
+                    <strong id="docAvailableDays">Loading...</strong>
+                </div>
+                <div class="availability-row">
+                    <span>Time</span>
+                    <strong id="docAvailableTime">Loading...</strong>
+                </div>
+                <button type="button" class="availability-edit-btn" onclick="openDoctorScheduleEditor()">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                    <span>Edit Schedule</span>
+                </button>
+            </div>
+
             <div class="sidebar-footer">
                 <a href="javascript:void(0)" onclick="logoutDoctor()" class="btn-sidebar-logout">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>

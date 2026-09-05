@@ -90,6 +90,26 @@ async function apiFetch(endpoint, options = {}) {
     throw lastError || new Error('API connection failed');
 }
 
+async function loadDoctorAvailability() {
+    const daysEl = document.getElementById('docAvailableDays');
+    const timeEl = document.getElementById('docAvailableTime');
+
+    try {
+        const doctors = await apiFetch('/doctors');
+        const doctor = (Array.isArray(doctors) ? doctors : []).find(item => {
+            const name = item.doctor_name || item.doctorName || item.name || '';
+            return isMatchingDoctor(name, loggedDoctorName);
+        });
+
+        if (daysEl) daysEl.textContent = doctor?.available_days || doctor?.availableDays || 'Not assigned';
+        if (timeEl) timeEl.textContent = doctor?.available_time || doctor?.availableTime || 'Not assigned';
+    } catch (error) {
+        console.error('Load Doctor Availability Error:', error);
+        if (daysEl) daysEl.textContent = 'Unavailable';
+        if (timeEl) timeEl.textContent = 'Unavailable';
+    }
+}
+
 // 1. Dynamic Component Loader
 async function loadDoctorComponents() {
     const navNameEl = document.getElementById('docNavName');
@@ -121,6 +141,7 @@ async function loadDoctorComponents() {
     fetchDoctorAppointments();
     fetchDoctorBills();
     fetchDoctorPatientHistory();
+    loadDoctorAvailability();
 
     setTimeout(() => {
         switchTab('appointments-tab');
@@ -178,6 +199,18 @@ function switchTab(tabId) {
     }
 }
 
+window.openDoctorScheduleEditor = function() {
+    switchTab('doctor-profile');
+
+    setTimeout(() => {
+        const scheduleField = document.getElementById('docProfAvailableDays');
+        if (scheduleField) {
+            scheduleField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            scheduleField.focus();
+        }
+    }, 100);
+};
+
 // 3. Populate Profile Data (Fixed Username Detection)
 function loadDoctorProfileData() {
     const rawUsername = localStorage.getItem('username') || 
@@ -203,6 +236,25 @@ function loadDoctorProfileData() {
     if (nInput) nInput.value = fullName.replace(/^dr\.?\s*/i, '').trim();
     if (titleText) titleText.innerText = fullName.startsWith('Dr.') ? fullName : 'Dr. ' + fullName;
     if (badge) badge.innerHTML = `<i class="fa-solid fa-shield-halved"></i> Verified Specialist`;
+
+    loadDoctorProfileSchedule(fullName);
+}
+
+async function loadDoctorProfileSchedule(fullName) {
+    try {
+        const doctors = await apiFetch('/doctors');
+        const doctor = (Array.isArray(doctors) ? doctors : []).find(item => {
+            const name = item.doctor_name || item.doctorName || item.name || '';
+            return isMatchingDoctor(name, fullName);
+        });
+
+        const daysInput = document.getElementById('docProfAvailableDays');
+        const timeInput = document.getElementById('docProfAvailableTime');
+        if (daysInput) daysInput.value = doctor?.available_days || doctor?.availableDays || 'Mon - Sat';
+        if (timeInput) timeInput.value = doctor?.available_time || doctor?.availableTime || '09:00 AM - 05:00 PM';
+    } catch (error) {
+        console.error('Load Doctor Profile Schedule Error:', error);
+    }
 }
 
 // 4. Update Profile Handler (Direct /auth/update_profile API Call)
@@ -213,6 +265,8 @@ window.handleUpdateDoctorProfile = async function(e) {
     const fullName = document.getElementById('docProfFullName')?.value.trim();
     const currentPass = document.getElementById('docProfCurrentPass')?.value.trim();
     const newPass = document.getElementById('docProfNewPass')?.value.trim();
+    const availableDays = document.getElementById('docProfAvailableDays')?.value.trim();
+    const availableTime = document.getElementById('docProfAvailableTime')?.value.trim();
 
     if (!fullName) {
         alert('Doctor Full Name cannot be empty.');
@@ -230,10 +284,42 @@ window.handleUpdateDoctorProfile = async function(e) {
         username: username,
         fullName: formattedFullName,
         currentPassword: currentPass || '',
-        newPassword: newPass || ''
+        newPassword: newPass || '',
+        availableDays: availableDays || 'Mon - Sat',
+        availableTime: availableTime || '09:00 AM - 05:00 PM'
     };
 
     try {
+        const doctors = await apiFetch('/doctors');
+        const currentDoctor = (Array.isArray(doctors) ? doctors : []).find(item => {
+            const name = item.doctor_name || item.doctorName || item.name || '';
+            return isMatchingDoctor(name, loggedDoctorName) || isMatchingDoctor(name, fullName);
+        });
+
+        if (!currentDoctor) {
+            throw new Error('Your doctor profile could not be found. Please log in again.');
+        }
+
+        const doctorId = currentDoctor.doctor_id || currentDoctor.doctorId || currentDoctor.id;
+        if (!doctorId) {
+            throw new Error('Doctor ID is missing from your profile.');
+        }
+
+        const doctorUpdate = await apiFetch(`/doctors/${encodeURIComponent(doctorId)}`, {
+            method: 'PUT',
+            body: {
+                doctorName: formattedFullName,
+                location: currentDoctor.location || currentDoctor.branch || '',
+                telNo: currentDoctor.tel_no || currentDoctor.telNo || currentDoctor.telephone || '',
+                availableDays: availableDays || 'Mon - Sat',
+                availableTime: availableTime || '09:00 AM - 05:00 PM'
+            }
+        });
+
+        if (doctorUpdate?.status && doctorUpdate.status !== 'success') {
+            throw new Error(doctorUpdate.message || 'Doctor schedule update failed.');
+        }
+
         let res;
         try {
             res = await apiFetch('/auth/update_profile', { method: 'POST', body: payload });
@@ -245,7 +331,11 @@ window.handleUpdateDoctorProfile = async function(e) {
             }
         }
 
-        alert(res.message || 'Profile updated successfully!');
+        if (res?.status && res.status !== 'success') {
+            throw new Error(res.message || 'Profile update failed.');
+        }
+
+        alert('Profile and availability updated successfully!');
         
         localStorage.setItem('fullName', formattedFullName);
         localStorage.setItem('doctorName', formattedFullName);
@@ -259,6 +349,7 @@ window.handleUpdateDoctorProfile = async function(e) {
         if (document.getElementById('docProfNewPass')) document.getElementById('docProfNewPass').value = '';
         
         loadDoctorProfileData();
+        loadDoctorAvailability();
     } catch (err) {
         console.error('Update profile error:', err);
         alert('Failed to update profile: ' + (err.message || 'Invalid credentials or server connection error.'));
